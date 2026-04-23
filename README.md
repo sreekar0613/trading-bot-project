@@ -106,11 +106,11 @@ trading-bot/
 - [x] Fundamental universe screener
 - [x] Data validation
 
-### 🔄 Phase 2: Backtesting (Week 2–3)
-- [ ] Implement technical indicators
-- [ ] Code entry/exit logic
-- [ ] Run backtest on 3+ years
-- [ ] Validate Sharpe ratio 1.0–1.8
+### ✅ Phase 2: Backtesting (Week 2–3)
+- [x] Implement technical indicators
+- [x] Code entry/exit logic
+- [x] Run backtest on 3+ years
+- [x] Validate Sharpe ratio 1.0–1.8
 
 ### ⏳ Phase 3: Paper Trading (Week 4–7)
 - [ ] Deploy to Alpaca paper account

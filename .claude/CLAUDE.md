@@ -228,6 +228,9 @@ Trailing_Stop = Max(Highest_Price_Since_Entry - (2.5 * ATR(14)), Initial_Stop)
 
 ## Development Workflow (Claude Code Integration)
 
+### Repository Health & Commits
+- **MANDATORY**: After completing any major milestone (e.g., finishing a phase, integrating a new API, or fixing a critical logic bug), the agent MUST prompt the user to commit changes to Git. Do not proceed to the next task until the user confirms the commit has been performed.
+
 ### Prompt Template Structure
 Each phase has modular prompts designed for Claude Code terminal:
 
@@ -253,10 +256,6 @@ VALIDATION: [How to verify success]
 - Fallback to cached data if API fails
 - Log all errors to `error_log.txt` with timestamp
 - Critical failures (e.g., kill switch trigger) send email alert
-
-### Repository Health & Commits
-- **MANDATORY**: After completing any major milestone (e.g., finishing a development phase, successfully integrating a new API, or fixing a critical logic bug), the agent MUST stop and prompt the user to commit changes to Git.
-- Do not proceed to subsequent tasks or new code generation until the user confirms the commit has been performed. This ensures a stable fallback point is always maintained.
 
 ---
 
