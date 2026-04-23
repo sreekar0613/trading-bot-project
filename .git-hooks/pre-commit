@@ -1,0 +1,56 @@
+#!/bin/bash
+# Pre-commit hook to prevent API key leaks
+# Install: Copy to .git/hooks/pre-commit and chmod +x
+
+# Check for hardcoded API keys in staged files
+if git diff --cached --name-only | xargs grep -E "(ALPACA_API_KEY|FINNHUB_API_KEY|ALPHA_VANTAGE_API_KEY)\s*=\s*['\"][A-Za-z0-9]+" --exclude-dir=.git 2>/dev/null; then
+    echo ""
+    echo "❌ ERROR: API key detected in staged files"
+    echo ""
+    echo "NEVER commit API keys to git. Use environment variables instead:"
+    echo ""
+    echo "1. Store keys in .env file (already gitignored)"
+    echo "2. Load with: os.getenv('ALPACA_API_KEY')"
+    echo ""
+    echo "Files with hardcoded keys:"
+    git diff --cached --name-only | xargs grep -l -E "(ALPACA_API_KEY|FINNHUB_API_KEY|ALPHA_VANTAGE_API_KEY)\s*=\s*['\"][A-Za-z0-9]+" --exclude-dir=.git 2>/dev/null
+    echo ""
+    echo "To fix: Replace hardcoded keys with os.getenv() calls"
+    echo ""
+    exit 1
+fi
+
+# Check for .env file accidentally staged
+if git diff --cached --name-only | grep -q "^\.env$"; then
+    echo ""
+    echo "❌ ERROR: .env file is staged for commit"
+    echo ""
+    echo ".env contains sensitive API keys and should NEVER be committed"
+    echo ""
+    echo "To fix:"
+    echo "  git reset HEAD .env"
+    echo "  git update-index --assume-unchanged .env"
+    echo ""
+    exit 1
+fi
+
+# Check for database files (often contain cached API data)
+if git diff --cached --name-only | grep -E "\.(db|sqlite|sqlite3)$"; then
+    echo ""
+    echo "⚠️  WARNING: Database file staged for commit"
+    echo ""
+    echo "Database files (*.db, *.sqlite) often contain:"
+    echo "- Cached API responses"
+    echo "- Large binary data"
+    echo "- Sensitive information"
+    echo ""
+    read -p "Are you sure you want to commit this? (y/N) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
+# All checks passed
+echo "✓ Pre-commit checks passed"
+exit 0
