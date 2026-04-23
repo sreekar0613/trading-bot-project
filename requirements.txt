@@ -2,11 +2,13 @@
 alpaca-py==0.27.2         # Alpaca trading API client
 finnhub-python==2.4.20    # Finnhub market data API
 alpha-vantage==2.3.1      # Alpha Vantage fundamentals API
+yfinance==0.2.37          # Yahoo Finance market data API
 
 # Data Processing
 pandas==2.2.1             # Data manipulation
 numpy==1.26.4             # Numerical computing
 requests==2.31.0          # HTTP requests for APIs
+vaderSentiment==3.3.2     # Local NLP sentiment analysis
 
 # Database
 python-dotenv==1.0.1      # Load environment variables from .env
