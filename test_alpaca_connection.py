@@ -1,60 +1,74 @@
 import os
-import sys
+import logging
 from dotenv import load_dotenv
 from alpaca.trading.client import TradingClient
 from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockBarsRequest
+from alpaca.data.timeframe import TimeFrame
+from datetime import datetime, timedelta
 
-def test_alpaca_connection():
-    """Test Alpaca API connection and display account details."""
+# Configuration
+load_dotenv()
+LOG_FILE = "logs/paper_trading.log"
+os.makedirs("logs", exist_ok=True)
+
+# Centralized Logging for Phase 3
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()]
+)
+
+def test_connectivity():
+    logging.info("--- Starting Alpaca Paper Connectivity Test ---")
     
-    # Load environment variables
-    load_dotenv()
-    
-    # Get API credentials
     api_key = os.getenv('ALPACA_API_KEY')
     secret_key = os.getenv('ALPACA_SECRET_KEY')
-    
-    # Validate credentials exist
+    base_url = os.getenv('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+
     if not api_key or not secret_key:
-        print("❌ Error: ALPACA_API_KEY or ALPACA_SECRET_KEY not found in .env file")
-        sys.exit(1)
-    
+        logging.error("API keys missing from .env file. Please verify ALPACA_API_KEY and ALPACA_SECRET_KEY.")
+        return False
+
     try:
-        # Initialize Trading Client (for orders/positions)
-        trading_client = TradingClient(
-            api_key=api_key,
-            secret_key=secret_key,
-            paper=True  # Paper trading mode
-        )
-        print("✓ Trading client initialized")
-        
-        # Initialize Data Client (for historical price data)
-        data_client = StockHistoricalDataClient(
-            api_key=api_key,
-            secret_key=secret_key
-        )
-        print("✓ Data client initialized")
-        
-        # Fetch account information
+        # 1. Test Trading Client (Account Info)
+        trading_client = TradingClient(api_key, secret_key, paper=True)
         account = trading_client.get_account()
-        print("✓ Alpaca API connection successful\n")
         
-        # Display account details
-        print("Account Details:")
-        print(f"  Portfolio Value: ${float(account.portfolio_value):,.2f}")
-        print(f"  Buying Power: ${float(account.buying_power):,.2f}")
-        print(f"  Cash: ${float(account.cash):,.2f}")
-        print(f"  Equity: ${float(account.equity):,.2f}")
+        logging.info("✓ Trading Client: Successfully Connected")
+        logging.info(f"  Account ID: {account.id}")
+        logging.info(f"  Status: {account.status}")
+        logging.info(f"  Portfolio Value: ${float(account.portfolio_value):,.2f}")
+        logging.info(f"  Equity: ${float(account.equity):,.2f}")
+        logging.info(f"  Buying Power: ${float(account.buying_power):,.2f}")
         
+        if account.trading_blocked:
+            logging.warning("! Warning: Trading is currently BLOCKED on this account.")
+        else:
+            logging.info("✓ Trading Status: Active")
+
+        # 2. Test Data Client (Historical Bars)
+        data_client = StockHistoricalDataClient(api_key, secret_key)
+        request = StockBarsRequest(
+            symbol_or_symbols="AAPL",
+            timeframe=TimeFrame.Day,
+            start=datetime.now() - timedelta(days=5)
+        )
+        bars = data_client.get_stock_bars(request)
+        
+        if bars:
+            logging.info("✓ Data Client: Successfully retrieved test bar for AAPL")
+        
+        logging.info("--- Connectivity Test PASSED ---")
         return True
-        
+
     except Exception as e:
-        print(f"\n❌ Connection failed: {str(e)}")
-        print("\nTroubleshooting:")
-        print("  1. Verify API keys in .env file are correct")
-        print("  2. Check internet connection")
-        print("  3. Confirm Alpaca API status at https://status.alpaca.markets/")
-        sys.exit(1)
+        logging.error(f"✗ Connectivity Test FAILED: {str(e)}")
+        logging.info("Troubleshooting Steps:")
+        logging.info("  1. Verify the ALPACA_BASE_URL is set to the paper endpoint in your .env.")
+        logging.info("  2. Ensure your internet connection is stable.")
+        logging.info("  3. Confirm your Paper Trading keys are valid in the Alpaca Dashboard.")
+        return False
 
 if __name__ == "__main__":
-    test_alpaca_connection()
+    test_connectivity()
