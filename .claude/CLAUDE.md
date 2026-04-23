@@ -254,6 +254,10 @@ VALIDATION: [How to verify success]
 - Log all errors to `error_log.txt` with timestamp
 - Critical failures (e.g., kill switch trigger) send email alert
 
+### Repository Health & Commits
+- **MANDATORY**: After completing any major milestone (e.g., finishing a development phase, successfully integrating a new API, or fixing a critical logic bug), the agent MUST stop and prompt the user to commit changes to Git.
+- Do not proceed to subsequent tasks or new code generation until the user confirms the commit has been performed. This ensures a stable fallback point is always maintained.
+
 ---
 
 ## API Key Management
