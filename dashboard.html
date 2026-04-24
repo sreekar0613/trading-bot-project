@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sentio — Trading Bot Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --surface-2: #f4f4f2;
+    --surface-3: #ebebe8;
+    --line: rgba(10, 11, 13, 0.08);
+    --line-strong: rgba(10, 11, 13, 0.14);
+    --ink: #0a0b0d;
+    --ink-2: #3a3d44;
+    --ink-3: #6b7079;
+    --ink-4: #9ca1a9;
+    --accent: #0052ff;
+    --accent-soft: rgba(0, 82, 255, 0.08);
+    --pos: oklch(0.58 0.12 150);
+    --pos-bg: oklch(0.96 0.04 150);
+    --neg: oklch(0.58 0.14 25);
+    --neg-bg: oklch(0.96 0.04 25);
+    --neutral: #6b7079;
+    --terminal-bg: #0a0b0d;
+    --terminal-surface: #141519;
+    --terminal-border: #1f2125;
+    --radius-sm: 6px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgba(10, 11, 13, 0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
+  }
+
+  .mono { font-family: 'Geist Mono', 'JetBrains Mono', monospace; font-feature-settings: 'tnum' 1; }
+  .tnum { font-feature-settings: 'tnum' 1, 'cv11' 1; font-variant-numeric: tabular-nums; }
+
+  /* ------------- Layout ------------- */
+  .app {
+    min-height: 100vh;
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 28px 32px 48px;
+  }
+
+  /* ------------- Header ------------- */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 24px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-mark {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: var(--surface);
+    display: grid; place-items: center;
+    font-family: 'Geist Mono', monospace;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.02em;
+  }
+  .brand-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    padding: 3px 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .header-meta .meta-item { display: flex; align-items: center; gap: 6px; }
+  .header-meta .mono { color: var(--ink-2); font-size: 12px; }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--pos);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--pos) 20%, transparent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .status-dot.warn {
+    background: #febc2e;
+    box-shadow: 0 0 0 4px rgba(254, 188, 46, 0.2);
+  }
+  .status-dot.err {
+    background: var(--neg);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--neg) 20%, transparent);
+    animation: none;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ------------- KPI cards ------------- */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .kpi-card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px 26px;
+    overflow: hidden;
+    transition: border-color 200ms ease;
+  }
+  .kpi-card:hover { border-color: var(--line-strong); }
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 180px; height: 100%;
+    background: linear-gradient(180deg, var(--surface-2) 0%, transparent 100%);
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  .kpi-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 18px;
+    position: relative;
+    z-index: 1;
+  }
+  .kpi-label-tag {
+    font-family: 'Geist Mono', monospace;
+    color: var(--ink-4);
+    letter-spacing: 0.08em;
+  }
+  .kpi-value {
+    font-family: 'Geist', sans-serif;
+    font-size: 56px;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    color: var(--ink);
+    position: relative;
+    z-index: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-value .cents {
+    color: var(--ink-3);
+    font-size: 0.6em;
+    font-weight: 400;
+    margin-left: 1px;
+  }
+  .kpi-value .currency {
+    color: var(--ink-3);
+    font-size: 0.44em;
+    margin-right: 4px;
+    vertical-align: 0.35em;
+    font-weight: 400;
+  }
+  .kpi-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line);
+    font-size: 12px;
+    color: var(--ink-3);
+    position: relative;
+    z-index: 1;
+  }
+  .kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .kpi-delta.pos { color: var(--pos); background: var(--pos-bg); }
+  .kpi-delta.neg { color: var(--neg); background: var(--neg-bg); }
+  .kpi-delta .arrow { font-size: 9px; }
+
+  /* ------------- Sparkline ------------- */
+  .spark {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 60%;
+    height: 56px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* ------------- Section ------------- */
+  .section { margin-bottom: 28px; }
+  .section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .section-title .count {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-3);
+    padding: 2px 8px;
+    background: var(--surface-2);
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+  .section-sub {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ------------- Filter bar ------------- */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .chip {
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: all 150ms ease;
+    letter-spacing: -0.005em;
+  }
+  .chip:hover { border-color: var(--line-strong); color: var(--ink); }
+  .chip.active { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .chip .c-count {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    margin-left: 6px;
+    opacity: 0.55;
+  }
+  .toolbar .search {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    min-width: 240px;
+  }
+  .toolbar .search:focus-within { border-color: var(--ink-3); }
+  .toolbar .search input {
+    border: none; outline: none; background: transparent;
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px; color: var(--ink); width: 100%;
+  }
+  .toolbar .search .kbd {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px; color: var(--ink-4);
+    border: 1px solid var(--line); padding: 1px 5px;
+    border-radius: 4px; background: var(--surface-2);
+  }
+
+  /* ------------- Table ------------- */
+  .table-wrap {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10.5px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-3); text-align: left;
+    padding: 14px 20px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  thead th:hover { color: var(--ink); }
+  thead th.num { text-align: right; }
+  thead th .sort { margin-left: 4px; font-size: 9px; opacity: 0.5; }
+  thead th.active .sort { opacity: 1; color: var(--ink); }
+  tbody tr { border-bottom: 1px solid var(--line); transition: background 120ms ease; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr.selected { background: var(--accent-soft); }
+  tbody td { padding: 14px 20px; vertical-align: middle; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .ticker-cell { display: flex; align-items: center; gap: 10px; }
+  .ticker-mark {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px; font-weight: 600; color: var(--ink-2); letter-spacing: -0.02em;
+  }
+  .ticker-sym {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 600; font-size: 13px; color: var(--ink); letter-spacing: -0.01em;
+  }
+  .sector { color: var(--ink-2); font-size: 13px; }
+
+  .sentiment {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'Geist Mono', monospace;
+    font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 500;
+    padding: 3px 10px; border-radius: 999px; min-width: 92px; justify-content: flex-end;
+  }
+  .sentiment.pos { color: var(--pos); background: var(--pos-bg); }
+  .sentiment.neg { color: var(--neg); background: var(--neg-bg); }
+  .sentiment.neu { color: var(--ink-3); background: var(--surface-2); }
+  .sentiment .arrow { font-size: 9px; }
+
+  .buzz-cell { display: inline-flex; align-items: center; gap: 10px; justify-content: flex-end; min-width: 110px; }
+  .buzz-bar { width: 54px; height: 4px; background: var(--surface-3); border-radius: 2px; overflow: hidden; position: relative; }
+  .buzz-bar-fill { height: 100%; background: var(--ink-2); border-radius: 2px; transition: width 300ms ease; }
+  .buzz-count { font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink); font-weight: 500; min-width: 22px; text-align: right; }
+
+  .signal-cell { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .signal-label { font-family: 'Geist Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+  .signal-label.buy { color: var(--pos); }
+  .signal-label.sell { color: var(--neg); }
+  .signal-label.hold { color: var(--ink-4); }
+
+  /* ------------- Terminal ------------- */
+  .terminal {
+    background: var(--terminal-bg);
+    border: 1px solid var(--terminal-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(10,11,13,0.06), 0 8px 24px rgba(10,11,13,0.04);
+  }
+  .terminal-chrome {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    background: var(--terminal-surface);
+    border-bottom: 1px solid var(--terminal-border);
+  }
+  .tlights { display: flex; gap: 6px; }
+  .tlight { width: 11px; height: 11px; border-radius: 50%; background: #3a3d44; }
+  .tlight.r { background: #ff5f57; }
+  .tlight.y { background: #febc2e; }
+  .tlight.g { background: #28c840; }
+  .terminal-title {
+    flex: 1; text-align: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6b7079; letter-spacing: 0.02em;
+  }
+  .terminal-title .path { color: #9ca1a9; }
+  .terminal-actions { display: flex; align-items: center; gap: 8px; }
+  .t-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #6b7079;
+    padding: 3px 8px; border: 1px solid #24262b; border-radius: 4px;
+    background: transparent; cursor: pointer; letter-spacing: 0.04em;
+  }
+  .t-btn:hover { color: #e4e6ea; border-color: #3a3d44; }
+  .t-btn.live {
+    color: oklch(0.75 0.16 150);
+    border-color: color-mix(in oklab, oklch(0.6 0.16 150) 40%, transparent);
+    background: color-mix(in oklab, oklch(0.6 0.16 150) 10%, transparent);
+  }
+  .t-btn.live::before {
+    content: '';
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: oklch(0.75 0.16 150); margin-right: 5px; vertical-align: 1px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .terminal-body {
+    padding: 14px 18px 18px; height: 280px; overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.7; color: #c8ccd1;
+    scrollbar-width: thin; scrollbar-color: #24262b transparent;
+  }
+  .terminal-body::-webkit-scrollbar { width: 8px; }
+  .terminal-body::-webkit-scrollbar-thumb { background: #24262b; border-radius: 4px; }
+  .log-line {
+    display: grid; grid-template-columns: auto auto 1fr; gap: 10px;
+    align-items: baseline; animation: fadeIn 180ms ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+  .log-time { color: #6b7079; }
+  .log-level {
+    padding: 1px 7px; border-radius: 3px; font-weight: 500; font-size: 10.5px; letter-spacing: 0.06em;
+    height: 16px; display: inline-flex; align-items: center; justify-self: start;
+  }
+  .log-level.info    { color: #7aa6ff; background: rgba(122,166,255,0.1); }
+  .log-level.warn    { color: #febc2e; background: rgba(254,188,46,0.1); }
+  .log-level.warning { color: #febc2e; background: rgba(254,188,46,0.1); }
+  .log-level.error   { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+  .log-level.critical{ color: #ff6b6b; background: rgba(255,107,107,0.1); }
+  .log-level.trade   { color: oklch(0.78 0.18 150); background: color-mix(in oklab, oklch(0.7 0.18 150) 12%, transparent); }
+  .log-level.debug   { color: #9ca1a9; background: rgba(156,161,169,0.08); }
+  .log-msg { color: #e4e6ea; word-break: break-word; }
+  .log-msg .tok-ticker { color: #7aa6ff; font-weight: 500; }
+  .log-msg .tok-num    { color: oklch(0.82 0.14 85); }
+  .log-msg .tok-pos    { color: oklch(0.78 0.18 150); }
+  .log-msg .tok-neg    { color: #ff8b8b; }
+  .log-msg .tok-str    { color: oklch(0.82 0.14 85); }
+  .log-msg .tok-arrow  { color: #6b7079; }
+  .caret {
+    display: inline-block; width: 7px; height: 14px; background: #c8ccd1;
+    vertical-align: -2px; animation: blink 1.1s step-end infinite; margin-left: 4px;
+  }
+  @keyframes blink { 0%,50% { opacity:1; } 50.01%,100% { opacity:0; } }
+  .prompt-line { display: flex; align-items: center; margin-top: 6px; color: #6b7079; }
+  .prompt-line .ps  { color: oklch(0.78 0.18 150); margin-right: 8px; }
+  .prompt-line .cwd { color: #7aa6ff; margin-right: 8px; }
+  .terminal-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 16px; background: var(--terminal-surface);
+    border-top: 1px solid var(--terminal-border);
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #6b7079; letter-spacing: 0.04em;
+  }
+  .terminal-footer .stats { display: flex; gap: 20px; }
+  .terminal-footer .stat b { color: #c8ccd1; font-weight: 500; }
+
+  /* ------------- Animations ------------- */
+  .fade-up { animation: fadeUp 500ms cubic-bezier(0.2,0.7,0.2,1) both; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  .delay-1 { animation-delay: 60ms; }
+  .delay-2 { animation-delay: 120ms; }
+  .delay-3 { animation-delay: 200ms; }
+  .delay-4 { animation-delay: 280ms; }
+
+  @keyframes flashUp   { 0% { background: color-mix(in oklab, var(--pos) 18%, transparent); } 100% { background: transparent; } }
+  @keyframes flashDown { 0% { background: color-mix(in oklab, var(--neg) 18%, transparent); } 100% { background: transparent; } }
+  .flash-up   { animation: flashUp   900ms ease-out; }
+  .flash-down { animation: flashDown 900ms ease-out; }
+
+  .empty-row td {
+    text-align: center; padding: 32px; color: var(--ink-3);
+    font-family: 'Geist Mono', monospace; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!--
+    Initial data seeds the first render before the API responds.
+    Values are replaced within ~1 poll cycle (3 s) by live Alpaca data.
+  -->
+  <script type="application/json" id="initial-data">
+{
+  "portfolio_equity": 100000.00,
+  "buying_power":     200000.00,
+  "fundamental_universe": [
+    {"ticker":"AAPL","sector":"Technology",              "sentiment_score":0.036,"buzz":10},
+    {"ticker":"MSFT","sector":"Technology",              "sentiment_score":0.192,"buzz":14},
+    {"ticker":"NVDA","sector":"Technology",              "sentiment_score":0.418,"buzz":27},
+    {"ticker":"GOOGL","sector":"Communication Services", "sentiment_score":0.091,"buzz":16},
+    {"ticker":"META","sector":"Communication Services",  "sentiment_score":-0.227,"buzz":18},
+    {"ticker":"AMZN","sector":"Consumer Discretionary",  "sentiment_score":0.154,"buzz":21},
+    {"ticker":"TSLA","sector":"Consumer Discretionary",  "sentiment_score":-0.312,"buzz":33},
+    {"ticker":"JPM","sector":"Financials",               "sentiment_score":0.128,"buzz":9},
+    {"ticker":"LLY","sector":"Healthcare",               "sentiment_score":0.287,"buzz":19},
+    {"ticker":"AMD","sector":"Technology",               "sentiment_score":0.321,"buzz":26}
+  ]
+}
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="app.jsx" ></script>
+</body>
+</html>
