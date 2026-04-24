@@ -216,6 +216,7 @@ class TradingBot:
         request = StockBarsRequest(
             symbol_or_symbols=tickers,
             timeframe=TimeFrame.Day,
+            feed="iex",
             start=start_time,
             end=end_time
         )
