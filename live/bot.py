@@ -1,9 +1,10 @@
 import os
 import sys
 import time
+import random
 import logging
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import pytz
 from dotenv import load_dotenv
 from pathlib import Path
@@ -26,6 +27,7 @@ sys.path.append(str(REPO_ROOT))
 from indicators.technical import (
     calculate_rsi, calculate_macd, calculate_bollinger, calculate_ema, calculate_atr
 )
+from config import MAX_DAILY_LOSS_PCT, API_MAX_RETRIES, API_BACKOFF_BASE
 
 # Setup logging
 LOG_FILE = REPO_ROOT / 'logs' / 'paper_trading.log'
@@ -63,7 +65,35 @@ class TradingBot:
 
         self.pending_orders = []  # In-memory mirror, synced to DB
 
+        self.halted_until = None  # Date until which the bot is halted by circuit breaker
+
         logging.info("Trading Bot initialized.")
+
+    def alpaca_call_with_backoff(self, func, *args, **kwargs):
+        """Call an Alpaca API function with exponential backoff + jitter.
+
+        Retries up to API_MAX_RETRIES times on any exception. Backoff delay is
+        random.uniform(0, 1) * API_BACKOFF_BASE ** attempt. Re-raises the last
+        exception if all retries are exhausted.
+        """
+        last_exc = None
+        for attempt in range(API_MAX_RETRIES):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_exc = e
+                if attempt == API_MAX_RETRIES - 1:
+                    logging.error(
+                        f"Alpaca call {func.__name__} failed after {API_MAX_RETRIES} attempts: {e}"
+                    )
+                    raise
+                delay = random.uniform(0, 1) * (API_BACKOFF_BASE ** attempt)
+                logging.warning(
+                    f"Alpaca call {func.__name__} failed (attempt {attempt + 1}/{API_MAX_RETRIES}): "
+                    f"{e}. Retrying in {delay:.2f}s."
+                )
+                time.sleep(delay)
+        raise last_exc  # unreachable, but keeps analyzers happy
 
     def _get_conn(self):
         return sqlite3.connect(DB_PATH)
@@ -129,7 +159,7 @@ class TradingBot:
         return market_open <= now_et <= market_close
 
     def check_session_kill_switch(self):
-        account = self.trading_client.get_account()
+        account = self.alpaca_call_with_backoff(self.trading_client.get_account)
         equity = float(account.equity)
         last_equity = float(account.last_equity)
 
@@ -139,15 +169,47 @@ class TradingBot:
 
             if daily_pl_pct < -5.0:
                 logging.critical(f"KILL SWITCH TRIGGERED! Daily P&L is {daily_pl_pct:.2f}% (exceeds -5%).")
-                self.trading_client.cancel_orders()
-                self.trading_client.close_all_positions(cancel_orders=True)
+                self.alpaca_call_with_backoff(self.trading_client.cancel_orders)
+                self.alpaca_call_with_backoff(self.trading_client.close_all_positions, cancel_orders=True)
                 logging.critical("All positions closed and orders cancelled. Exiting bot.")
                 sys.exit(1)
+
+    def check_daily_loss_circuit_breaker(self) -> bool:
+        """Circuit breaker: halt bot for the rest of the trading day if net daily
+        PnL falls below -MAX_DAILY_LOSS_PCT. Returns True if breaker tripped."""
+        try:
+            account = self.alpaca_call_with_backoff(self.trading_client.get_account)
+        except Exception as e:
+            logging.error(f"Circuit breaker: could not fetch account: {e}")
+            return False
+
+        last_equity = float(account.last_equity)
+        if last_equity <= 0:
+            return False
+
+        equity = float(account.equity)
+        daily_pl_pct = ((equity - last_equity) / last_equity) * 100
+        threshold_pct = -(MAX_DAILY_LOSS_PCT * 100)
+
+        if daily_pl_pct < threshold_pct:
+            logging.critical(
+                f"DAILY LOSS CIRCUIT BREAKER TRIGGERED! Daily P&L is {daily_pl_pct:.2f}% "
+                f"(threshold {threshold_pct:.2f}%). Flattening positions and halting until next trading day."
+            )
+            try:
+                self.alpaca_call_with_backoff(self.trading_client.cancel_orders)
+                self.alpaca_call_with_backoff(self.trading_client.close_all_positions, cancel_orders=True)
+            except Exception as e:
+                logging.critical(f"Circuit breaker flatten failed: {e}")
+            self.halted_until = date.today()
+            return True
+
+        return False
 
     def _check_macro_drawdown(self) -> bool:
         """Return True if drawdown from peak exceeds 15% (pause new entries)."""
         try:
-            account = self.trading_client.get_account()
+            account = self.alpaca_call_with_backoff(self.trading_client.get_account)
             equity = float(account.equity)
         except Exception as e:
             logging.error(f"Could not fetch account for drawdown check: {e}")
@@ -200,7 +262,7 @@ class TradingBot:
         return pos_size / price
 
     def get_sector_exposure(self, sectors: dict):
-        positions = self.trading_client.get_all_positions()
+        positions = self.alpaca_call_with_backoff(self.trading_client.get_all_positions)
         exposure = {}
         for p in positions:
             sym = p.symbol
@@ -222,7 +284,7 @@ class TradingBot:
         )
 
         try:
-            bars = self.data_client.get_stock_bars(request)
+            bars = self.alpaca_call_with_backoff(self.data_client.get_stock_bars, request)
             return bars.df
         except Exception as e:
             logging.error(f"Failed to fetch data: {e}")
@@ -231,6 +293,10 @@ class TradingBot:
     def job_scan_signals(self):
         """Run daily at 4:05 PM ET to generate signals for the next morning."""
         logging.info("--- Job: Scanning Signals ---")
+
+        if self.halted_until == date.today():
+            logging.warning("Bot halted by daily loss circuit breaker — skipping signal scan.")
+            return
 
         # Macro drawdown pause
         if self._check_macro_drawdown():
@@ -303,6 +369,10 @@ class TradingBot:
         """Run daily at 3:00 PM ET: fetch Finnhub company_news, score headlines with VADER."""
         logging.info("--- Job: Sentiment Refresh (Finnhub company_news + VADER) ---")
 
+        if self.halted_until == date.today():
+            logging.warning("Bot halted by daily loss circuit breaker — skipping sentiment refresh.")
+            return
+
         tickers = list(self.get_active_universe().keys())
         if not tickers:
             logging.warning("Sentiment refresh: fundamental_universe is empty, skipping.")
@@ -363,6 +433,10 @@ class TradingBot:
         """Run daily at 10:15 AM ET to execute queued orders."""
         logging.info("--- Job: Executing Queued Orders ---")
 
+        if self.halted_until == date.today():
+            logging.warning("Bot halted by daily loss circuit breaker — skipping order execution.")
+            return
+
         pending = self._load_pending_orders()
         self.pending_orders = list(pending)
 
@@ -372,7 +446,7 @@ class TradingBot:
 
         self.check_session_kill_switch()
 
-        account = self.trading_client.get_account()
+        account = self.alpaca_call_with_backoff(self.trading_client.get_account)
         equity = float(account.equity)
 
         universe = self.get_active_universe()
@@ -414,7 +488,7 @@ class TradingBot:
                         side=OrderSide.BUY,
                         time_in_force=TimeInForce.DAY
                     )
-                    self.trading_client.submit_order(order_req)
+                    self.alpaca_call_with_backoff(self.trading_client.submit_order, order_req)
                     logging.info(f"Executed Order: BUY {round(share_qty, 4)} shares of {symbol}")
 
                     pos_size = share_qty * current_price
@@ -467,14 +541,19 @@ class TradingBot:
                         self.job_execute_orders()
                         executed_today['execute'] = today_str
 
-                # Periodic kill-switch check during market hours (every 5 min)
+                # Periodic circuit-breaker + kill-switch checks during market hours (every 5 min)
                 if self.check_market_hours():
                     if last_kill_switch_check is None or \
                        (now_et - last_kill_switch_check) >= timedelta(minutes=5):
-                        try:
-                            self.check_session_kill_switch()
-                        except Exception as e:
-                            logging.error(f"Kill switch check failed: {e}")
+                        if self.halted_until != date.today():
+                            try:
+                                self.check_daily_loss_circuit_breaker()
+                            except Exception as e:
+                                logging.error(f"Daily loss circuit breaker check failed: {e}")
+                            try:
+                                self.check_session_kill_switch()
+                            except Exception as e:
+                                logging.error(f"Kill switch check failed: {e}")
                         last_kill_switch_check = now_et
 
             time.sleep(30)
