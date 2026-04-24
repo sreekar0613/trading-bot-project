@@ -491,6 +491,38 @@
     text-align: center; padding: 32px; color: var(--ink-3);
     font-family: 'Geist Mono', monospace; font-size: 12px;
   }
+  @media (max-width: 768px) {
+    .app { padding: 16px 16px 40px; }
+    .header { flex-direction: column; align-items: flex-start; gap: 14px; padding-bottom: 16px; margin-bottom: 20px; }
+    .header-meta { gap: 12px; flex-wrap: wrap; width: 100%; }
+    .kpi-row { gap: 12px; margin-bottom: 24px; }
+    .kpi-card { padding: 20px 20px 18px; }
+    .kpi-value { font-size: 40px; }
+    .section-head { flex-wrap: wrap; gap: 6px; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 520px; }
+    .toolbar { gap: 6px; }
+    .toolbar .search { margin-left: 0; width: 100%; min-width: unset; }
+    .terminal-title { display: none; }
+    .terminal-footer > div:last-child { display: none; }
+  }
+  @media (max-width: 480px) {
+    .app { padding: 12px 12px 32px; }
+    .brand-sub { display: none; }
+    .kpi-row { grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+    .kpi-card { padding: 18px 18px 16px; }
+    .kpi-value { font-size: 36px; }
+    .section-title { font-size: 15px; }
+    thead th { padding: 10px 12px; font-size: 9.5px; }
+    tbody td { padding: 10px 12px; }
+    .terminal-body { font-size: 11px; height: 240px; }
+    .log-time { display: none; }
+    .chip { font-size: 11px; padding: 5px 10px; }
+  }
+  @media (max-width: 360px) {
+    .kpi-value { font-size: 30px; }
+    .kpi-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
+  }
 </style>
 </head>
 <body>
