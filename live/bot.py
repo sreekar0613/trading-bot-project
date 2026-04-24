@@ -12,6 +12,7 @@ from pathlib import Path
 load_dotenv()
 
 import finnhub
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
@@ -298,47 +299,54 @@ class TradingBot:
         logging.info(f"Queue updated. Pending Orders: {self.pending_orders}")
 
     def job_populate_sentiment(self):
-        """Run daily at 3:00 PM ET to refresh sentiment_cache before signal scan."""
-        logging.info("--- Job: Sentiment Refresh (Finnhub) ---")
+        """Run daily at 3:00 PM ET: fetch Finnhub company_news, score headlines with VADER."""
+        logging.info("--- Job: Sentiment Refresh (Finnhub company_news + VADER) ---")
 
         tickers = list(self.get_active_universe().keys())
         if not tickers:
             logging.warning("Sentiment refresh: fundamental_universe is empty, skipping.")
             return
 
-        today = datetime.now(pytz.utc).strftime("%Y-%m-%d")
-        ok, errors = 0, 0
+        analyzer = SentimentIntensityAnalyzer()
+        today_dt = datetime.now(pytz.utc)
+        from_dt = today_dt - timedelta(days=7)
+        today_str = today_dt.strftime('%Y-%m-%d')
+        from_str = from_dt.strftime('%Y-%m-%d')
+
+        ok, skipped, errors = 0, 0, 0
 
         with self._get_conn() as conn:
             for symbol in tickers:
                 try:
-                    data = self.finnhub_client.news_sentiment(symbol) or {}
-                    sentiment_score = data.get('companyNewsScore')
-                    buzz = data.get('buzz') or {}
-                    buzz_ratio = buzz.get('articlesInLastWeek')
+                    news = self.finnhub_client.company_news(symbol, _from=from_str, to=today_str) or []
+                    headlines = [a['headline'] for a in news if a.get('headline')]
 
-                    if sentiment_score is None:
-                        logging.info(f"Finnhub: no sentiment for {symbol}, skipping.")
+                    if not headlines:
+                        logging.info(f"{symbol}: no headlines, skipping.")
+                        skipped += 1
+                        time.sleep(0.5)
                         continue
+
+                    scores = [analyzer.polarity_scores(h)['compound'] for h in headlines]
+                    avg_score = sum(scores) / len(scores)
+                    buzz_ratio = len(headlines)
 
                     conn.execute(
                         "INSERT OR REPLACE INTO sentiment_cache "
                         "(symbol, date, sentiment_score, buzz_ratio) VALUES (?, ?, ?, ?)",
-                        (symbol, today, float(sentiment_score),
-                         int(buzz_ratio) if buzz_ratio is not None else 0),
+                        (symbol, today_str, float(avg_score), int(buzz_ratio)),
                     )
-                    logging.info(f"Sentiment {symbol}: score={sentiment_score}, buzz={buzz_ratio}")
+                    logging.info(f"{symbol}: score={avg_score:+.3f}, buzz={buzz_ratio}")
                     ok += 1
                 except Exception as e:
-                    logging.error("Finnhub sentiment fetch failed for %s: %s", symbol, e)
+                    logging.error("Sentiment fetch failed for %s: %s", symbol, e)
                     errors += 1
 
-                # Rate limit: Finnhub free tier = 60/min
-                time.sleep(1)
+                time.sleep(0.5)
 
         logging.info(
-            "Sentiment refresh completed: %d updated, %d errors (total %d tickers).",
-            ok, errors, len(tickers),
+            "Sentiment refresh completed: %d updated, %d no-news, %d errors (total %d tickers).",
+            ok, skipped, errors, len(tickers),
         )
 
     def _load_pending_orders(self) -> list:
