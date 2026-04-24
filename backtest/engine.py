@@ -109,7 +109,7 @@ def run_backtest():
                     continue
                     
                 # Position Sizing
-                risk_amount = portfolio_value * 0.015
+                risk_amount = portfolio_value * 0.025
                 stop_distance = atr * 2.5
                 qty = risk_amount / stop_distance
                 

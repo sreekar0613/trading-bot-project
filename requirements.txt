@@ -19,7 +19,6 @@ vaderSentiment==3.3.2     # Local NLP sentiment analysis
 
 # Database
 python-dotenv==1.0.1      # Load environment variables from .env
-sqlite3                   # SQLite database (built-in to Python)
 
 # Backtesting
 backtrader==1.9.78.123    # Backtesting framework
