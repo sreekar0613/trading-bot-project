@@ -43,19 +43,28 @@ FINNHUB_API_KEY=your_finnhub_key
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
 ```
 
-### 4. Run Phase 1 (Data Pipeline)
+### 4. Run Phase 1 (Data Pipeline) — IN ORDER
 ```bash
 # Test Alpaca connection
 python test_alpaca_connection.py
 
 # Fetch historical data (2020–2024)
-python fetch_historical_data.py
+python data/fetch_historical_data.py
 
-# Build fundamental universe
-python fetch_fundamentals.py
+# Screen by volume (prerequisite for fundamental screener)
+python data/screen_by_volume.py
+
+# Initialize liquid_universe table if needed
+python data/init_liquid_universe.py
+
+# Build fundamental universe (requires liquid_universe from above)
+python data/fetch_fundamentals.py
+
+# Populate sentiment cache (optional but recommended for bot)
+python data/fetch_sentiment_local.py
 
 # Generate summary report
-python generate_universe_report.py
+python data/generate_universe_report.py
 ```
 
 ---
@@ -142,7 +151,7 @@ trading-bot/
 - Hold time > 21 trading days
 
 ### Risk Management
-- **Position sizing**: 1.5% risk per trade (ATR-based)
+- **Position sizing**: 2.5% risk per trade (ATR-based)
 - **Max single position**: 15% of portfolio
 - **Max sector exposure**: 25% of portfolio
 - **Session kill switch**: -5% daily loss → halt system

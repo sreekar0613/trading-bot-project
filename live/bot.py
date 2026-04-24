@@ -11,6 +11,8 @@ from pathlib import Path
 # Load Alpaca keys from .env
 load_dotenv()
 
+import yfinance as yf
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
@@ -225,6 +227,60 @@ class TradingBot:
 
         logging.info(f"Queue updated. Pending Orders: {self.pending_orders}")
 
+    def job_populate_sentiment(self):
+        """Run daily at 3:00 PM ET to refresh sentiment_cache before signal scan."""
+        logging.info("--- Job: Sentiment Refresh ---")
+
+        # Ensure table exists (safe if already present)
+        self.db_conn.execute("""
+            CREATE TABLE IF NOT EXISTS sentiment_cache (
+                symbol          TEXT,
+                date            TEXT,
+                sentiment_score REAL,
+                buzz_ratio      INTEGER,
+                PRIMARY KEY (symbol, date)
+            )
+        """)
+        self.db_conn.commit()
+
+        tickers = list(self.get_active_universe().keys())
+        if not tickers:
+            logging.warning("Sentiment refresh: fundamental_universe is empty, skipping.")
+            return
+
+        analyzer = SentimentIntensityAnalyzer()
+        today = datetime.now(pytz.utc).strftime("%Y-%m-%d")
+        ok, skipped, errors = 0, 0, 0
+
+        for symbol in tickers:
+            try:
+                news = yf.Ticker(symbol).news or []
+                scores = [
+                    analyzer.polarity_scores(a.get("content", {}).get("title", ""))["compound"]
+                    for a in news
+                    if a.get("content", {}).get("title", "")
+                ]
+                if not scores:
+                    skipped += 1
+                    continue
+
+                avg_score = sum(scores) / len(scores)
+                self.db_conn.execute(
+                    "INSERT OR REPLACE INTO sentiment_cache "
+                    "(symbol, date, sentiment_score, buzz_ratio) VALUES (?, ?, ?, ?)",
+                    (symbol, today, avg_score, len(scores)),
+                )
+                ok += 1
+            except Exception as e:
+                logging.error("Sentiment fetch failed for %s: %s", symbol, e)
+                errors += 1
+
+        self.db_conn.commit()
+        logging.info(
+            "Sentiment refresh completed: %d updated, %d no-news, %d errors (total %d tickers).",
+            ok, skipped, errors, len(tickers),
+        )
+
     def job_execute_orders(self):
         """Run daily at 10:15 AM ET to execute queued orders."""
         logging.info("--- Job: Executing Queued Orders ---")
@@ -297,16 +353,23 @@ class TradingBot:
         logging.info("Starting autonomous bot execution loop...")
         
         executed_today = {
+            'sentiment': None,
             'scan': None,
-            'execute': None
+            'execute': None,
         }
 
         while True:
             now_et = datetime.now(eastern)
             is_weekday = now_et.weekday() < 5
             today_str = now_et.strftime('%Y-%m-%d')
-            
+
             if is_weekday:
+                # 3:00 PM ET — Sentiment refresh (must run before 4:05 PM scan)
+                if now_et.hour == 15 and now_et.minute == 0:
+                    if executed_today['sentiment'] != today_str:
+                        self.job_populate_sentiment()
+                        executed_today['sentiment'] = today_str
+
                 # 4:05 PM ET Scan
                 if now_et.hour == 16 and now_et.minute == 5:
                     if executed_today['scan'] != today_str:

@@ -48,7 +48,7 @@ Build a fully autonomous trading system that analyzes real-time market data, exe
 ### 3. Position Sizing (Volatility-Adjusted)
 **Formula**:
 ```
-Risk_Amount = Account_Equity * 0.015  (1.5% risk per trade)
+Risk_Amount = Account_Equity * 0.025  (2.5% risk per trade)
 Stop_Distance = ATR(14) * 2.5
 Share_Quantity = Risk_Amount / Stop_Distance
 
