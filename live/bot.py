@@ -10,9 +10,6 @@ import pytz
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Load Alpaca keys from .env
-load_dotenv()
-
 import finnhub
 import yfinance as yf
 import openai
@@ -26,6 +23,9 @@ from alpaca.data.timeframe import TimeFrame
 # Import indicators
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(REPO_ROOT))
+
+# Load Alpaca keys from .env (absolute path so systemd CWD doesn't matter)
+load_dotenv(REPO_ROOT / ".env")
 from indicators.technical import (
     calculate_rsi, calculate_macd, calculate_bollinger, calculate_ema, calculate_atr
 )
