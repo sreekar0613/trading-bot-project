@@ -74,8 +74,46 @@ async function main() {
     if (message.sender.id === ownNumber) continue;
     if (message.content.type !== "text") continue;
 
-    const userText = message.content.text;
+    const userText = message.content.text.trim();
     console.log(`Received message from ${message.sender.id}: ${userText}`);
+
+    if (userText === "/pause") {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/bot/pause", { method: "POST" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await space.send("Bot paused. No new entries will be taken.");
+      } catch (err) {
+        await space.send(`Failed to pause bot: ${err}`);
+      }
+      continue;
+    }
+
+    if (userText === "/resume") {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/bot/resume", { method: "POST" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await space.send("Bot resumed. Normal operations restored.");
+      } catch (err) {
+        await space.send(`Failed to resume bot: ${err}`);
+      }
+      continue;
+    }
+
+    if (userText === "/status") {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/bot/status");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const statusMsg = `Bot Status:
+- Paused: ${data.paused}
+- Open Positions: ${data.open_position_count}
+- Last Heartbeat: ${data.last_heartbeat || "N/A"}`;
+        await space.send(statusMsg);
+      } catch (err) {
+        await space.send(`Failed to fetch bot status: ${err}`);
+      }
+      continue;
+    }
 
     await space.responding(async () => {
       const context = await fetchBotContext();
