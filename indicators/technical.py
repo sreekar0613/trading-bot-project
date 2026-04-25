@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pandas_ta as ta
+import ta
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH   = REPO_ROOT / "trading_bot.db"
@@ -29,9 +29,8 @@ def calculate_rsi(close: pd.Series, period: int = 14) -> pd.Series:
     """
     Wilder's RSI (exponential smoothing, not simple average).
     """
-    rsi = ta.rsi(close, length=period)
-    if rsi is None:
-        rsi = pd.Series(np.nan, index=close.index)
+    rsi_ind = ta.momentum.RSIIndicator(close=close, window=period)
+    rsi = rsi_ind.rsi()
     return rsi
 
 
@@ -46,19 +45,12 @@ def calculate_macd(
     """
     MACD indicator.
     """
-    macd_df = ta.macd(close, fast=fast, slow=slow, signal=signal)
-    if macd_df is None or macd_df.empty:
-        nan_series = pd.Series(np.nan, index=close.index)
-        return {"macd": nan_series, "signal": nan_series, "histogram": nan_series}
-
-    macd_line = macd_df[macd_df.columns[0]]
-    histogram = macd_df[macd_df.columns[1]]
-    signal_line = macd_df[macd_df.columns[2]]
+    macd_ind = ta.trend.MACD(close=close, window_slow=slow, window_fast=fast, window_sign=signal)
     
     return {
-        "macd":      macd_line,
-        "signal":    signal_line,
-        "histogram": histogram,
+        "macd":      macd_ind.macd(),
+        "signal":    macd_ind.macd_signal(),
+        "histogram": macd_ind.macd_diff(),
     }
 
 
@@ -72,15 +64,12 @@ def calculate_bollinger(
     """
     Bollinger Bands.
     """
-    bb_df = ta.bbands(close, length=period, std=std)
-    if bb_df is None or bb_df.empty:
-        nan_series = pd.Series(np.nan, index=close.index)
-        return {"upper": nan_series, "middle": nan_series, "lower": nan_series}
+    bb_ind = ta.volatility.BollingerBands(close=close, window=period, window_dev=std)
 
     return {
-        "lower":  bb_df[bb_df.columns[0]],
-        "middle": bb_df[bb_df.columns[1]],
-        "upper":  bb_df[bb_df.columns[2]],
+        "lower":  bb_ind.bollinger_lband(),
+        "middle": bb_ind.bollinger_mavg(),
+        "upper":  bb_ind.bollinger_hband(),
     }
 
 
@@ -90,10 +79,8 @@ def calculate_ema(close: pd.Series, period: int = 200) -> pd.Series:
     """
     Exponential Moving Average (trend filter).
     """
-    ema = ta.ema(close, length=period)
-    if ema is None:
-        ema = pd.Series(np.nan, index=close.index)
-    return ema
+    ema_ind = ta.trend.EMAIndicator(close=close, window=period)
+    return ema_ind.ema_indicator()
 
 
 # ── ATR ──────────────────────────────────────────────────────────────────────
@@ -107,10 +94,8 @@ def calculate_atr(
     """
     Average True Range.
     """
-    atr = ta.atr(high, low, close, length=period)
-    if atr is None:
-        atr = pd.Series(np.nan, index=close.index)
-    return atr
+    atr_ind = ta.volatility.AverageTrueRange(high=high, low=low, close=close, window=period)
+    return atr_ind.average_true_range()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -135,6 +120,15 @@ def load_price_history(symbol: str, db_path: Path = DB_PATH) -> pd.DataFrame:
 if __name__ == "__main__":
     SYMBOL = "AAPL"
     df = load_price_history(SYMBOL)
+
+    if df.empty:
+        # Provide dummy data if DB is empty for quick testing
+        np.random.seed(42)
+        df = pd.DataFrame({
+            'high': np.random.uniform(100, 110, 300),
+            'low': np.random.uniform(90, 100, 300),
+            'close': np.random.uniform(95, 105, 300)
+        })
 
     rsi        = calculate_rsi(df["close"])
     macd_dict  = calculate_macd(df["close"])
