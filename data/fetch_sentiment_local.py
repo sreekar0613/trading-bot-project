@@ -7,6 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 import yfinance as yf
 import openai
+from dotenv import load_dotenv
+
+# Load .env
+load_dotenv()
 
 # Configuration
 REPO_ROOT = Path(__file__).resolve().parent.parent

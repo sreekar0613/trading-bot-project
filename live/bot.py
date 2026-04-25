@@ -4,6 +4,7 @@ import time
 import random
 import logging
 import sqlite3
+import json
 from datetime import datetime, timedelta, date
 import pytz
 from dotenv import load_dotenv
@@ -14,7 +15,7 @@ load_dotenv()
 
 import finnhub
 import yfinance as yf
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import openai
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
@@ -46,11 +47,36 @@ logging.basicConfig(
 DB_PATH = REPO_ROOT / "trading_bot.db"
 
 # Validate required API keys on startup
-_REQUIRED_KEYS = ('ALPACA_API_KEY', 'ALPACA_SECRET_KEY', 'FINNHUB_API_KEY')
+_REQUIRED_KEYS = ('ALPACA_API_KEY', 'ALPACA_SECRET_KEY', 'FINNHUB_API_KEY', 'OPENAI_API_KEY')
 for _k in _REQUIRED_KEYS:
     if not os.getenv(_k):
         logging.critical(f"Missing required env var: {_k}")
         sys.exit(1)
+
+openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def _get_gpt_sentiment(headline: str) -> float:
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a highly accurate financial sentiment analyzer. Analyze the following news headline. Classify its short-term impact on the mentioned company's stock price as Positive (1.0), Neutral (0.0), or Negative (-1.0). Respond ONLY with a valid JSON object in this exact format: {\"score\": <float>}."
+                },
+                {"role": "user", "content": headline}
+            ],
+            timeout=10.0
+        )
+        content = response.choices[0].message.content
+        if content:
+            data = json.loads(content)
+            return float(data.get("score", 0.0))
+        return 0.0
+    except Exception as e:
+        logging.error(f"GPT sentiment analysis failed for '{headline}': {e}")
+        return 0.0
 
 
 class TradingBot:
@@ -608,8 +634,8 @@ class TradingBot:
         logging.info(f"Queue updated. Pending Orders: {self.pending_orders}")
 
     def job_populate_sentiment(self):
-        """Run daily at 3:00 PM ET: fetch Finnhub company_news, score headlines with VADER."""
-        logging.info("--- Job: Sentiment Refresh (Finnhub company_news + VADER) ---")
+        """Run daily at 3:00 PM ET: fetch Finnhub company_news, score headlines with OpenAI."""
+        logging.info("--- Job: Sentiment Refresh (Finnhub company_news + OpenAI) ---")
 
         if self.halted_until == date.today():
             logging.warning("Bot halted by daily loss circuit breaker — skipping sentiment refresh.")
@@ -620,7 +646,6 @@ class TradingBot:
             logging.warning("Sentiment refresh: fundamental_universe is empty, skipping.")
             return
 
-        analyzer = SentimentIntensityAnalyzer()
         today_dt = datetime.now(pytz.utc)
         from_dt = today_dt - timedelta(days=7)
         today_str = today_dt.strftime('%Y-%m-%d')
@@ -640,8 +665,12 @@ class TradingBot:
                         time.sleep(0.5)
                         continue
 
-                    scores = [analyzer.polarity_scores(h)['compound'] for h in headlines]
-                    avg_score = sum(scores) / len(scores)
+                    scores = []
+                    for h in headlines:
+                        score = _get_gpt_sentiment(h)
+                        scores.append(score)
+                        
+                    avg_score = sum(scores) / len(scores) if scores else 0.0
                     buzz_ratio = len(headlines)
 
                     conn.execute(
