@@ -27,7 +27,7 @@ sys.path.append(str(REPO_ROOT))
 from indicators.technical import (
     calculate_rsi, calculate_macd, calculate_bollinger, calculate_ema, calculate_atr
 )
-from config import MAX_DAILY_LOSS_PCT, API_MAX_RETRIES, API_BACKOFF_BASE
+from config import MAX_DAILY_LOSS_PCT, API_MAX_RETRIES, API_BACKOFF_BASE, EARNINGS_WINDOW_DAYS
 
 # Setup logging
 LOG_FILE = REPO_ROOT / 'logs' / 'paper_trading.log'
@@ -121,6 +121,14 @@ class TradingBot:
                     value REAL
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS earnings_calendar (
+                    symbol         TEXT,
+                    earnings_date  TEXT,
+                    fetched_at     TEXT,
+                    PRIMARY KEY (symbol, earnings_date)
+                )
+            """)
 
     def get_active_universe(self):
         """Query fundamental_universe for symbols and sectors."""
@@ -145,6 +153,92 @@ class TradingBot:
             except sqlite3.OperationalError:
                 pass
         return 0.0
+
+    def fetch_earnings_calendar(self, symbol: str) -> tuple[bool, list[str]]:
+        """Return (ok, dates) for upcoming earnings within the next 30 days.
+
+        - (False, [])   — fetch failed or cache unusable; caller must fail-closed.
+        - (True,  [])   — Finnhub confirmed no upcoming earnings; caller may allow.
+        - (True,  [...])— earnings dates (YYYY-MM-DD); caller checks 3-day window.
+
+        Uses SQLite cache refreshed at most weekly. A sentinel row
+        ('9999-12-31') is written when Finnhub returns no earnings so cache
+        freshness lookups still register "we checked today."
+        """
+        today = date.today()
+        today_str = today.isoformat()
+        cutoff_str = (today - timedelta(days=7)).isoformat()
+
+        # Cache hit: any row for this symbol with fresh fetched_at means we
+        # checked within the last 7 days.
+        with self._get_conn() as conn:
+            fresh = conn.execute(
+                "SELECT 1 FROM earnings_calendar WHERE symbol = ? AND fetched_at >= ? LIMIT 1",
+                (symbol, cutoff_str),
+            ).fetchone()
+
+            if fresh:
+                rows = conn.execute(
+                    "SELECT earnings_date FROM earnings_calendar "
+                    "WHERE symbol = ? AND earnings_date >= ? "
+                    "AND earnings_date != '9999-12-31'",
+                    (symbol, today_str),
+                ).fetchall()
+                return True, [r[0] for r in rows]
+
+        # Cache miss or stale — refetch from Finnhub
+        try:
+            end_str = (today + timedelta(days=30)).isoformat()
+            resp = self.alpaca_call_with_backoff(
+                self.finnhub_client.earnings_calendar,
+                _from=today_str, to=end_str, symbol=symbol, international=False,
+            )
+        except Exception as e:
+            logging.warning(f"Earnings calendar fetch failed for {symbol}: {e}")
+            return False, []
+
+        if not isinstance(resp, dict) or 'earningsCalendar' not in resp:
+            logging.warning(f"Earnings calendar: unexpected response for {symbol}: {resp!r}")
+            return False, []
+
+        earnings_dates = [e['date'] for e in resp['earningsCalendar'] if e.get('date')]
+
+        with self._get_conn() as conn:
+            conn.execute("DELETE FROM earnings_calendar WHERE symbol = ?", (symbol,))
+            if earnings_dates:
+                for d in earnings_dates:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO earnings_calendar "
+                        "(symbol, earnings_date, fetched_at) VALUES (?, ?, ?)",
+                        (symbol, d, today_str),
+                    )
+            else:
+                # Sentinel row marks "checked, nothing upcoming" so cache freshness
+                # lookups work even when there are no real earnings dates.
+                conn.execute(
+                    "INSERT OR REPLACE INTO earnings_calendar "
+                    "(symbol, earnings_date, fetched_at) VALUES (?, '9999-12-31', ?)",
+                    (symbol, today_str),
+                )
+
+        return True, earnings_dates
+
+    def _is_within_earnings_window(
+        self, earnings_dates: list[str], window_days: int = EARNINGS_WINDOW_DAYS
+    ) -> tuple[bool, str]:
+        """Return (True, matching_date) if any earnings_date falls within
+        today-1 .. today+window_days (calendar days, inclusive)."""
+        today = date.today()
+        start = today - timedelta(days=1)
+        end = today + timedelta(days=window_days)
+        for d_str in earnings_dates:
+            try:
+                d = date.fromisoformat(d_str)
+            except ValueError:
+                continue
+            if start <= d <= end:
+                return True, d_str
+        return False, ""
 
     def check_market_hours(self) -> bool:
         eastern = pytz.timezone('US/Eastern')
@@ -180,7 +274,14 @@ class TradingBot:
         try:
             account = self.alpaca_call_with_backoff(self.trading_client.get_account)
         except Exception as e:
-            logging.error(f"Circuit breaker: could not fetch account: {e}")
+            if self.check_market_hours():
+                logging.critical(
+                    f"Circuit breaker: could not fetch account during market hours: {e}. "
+                    f"Fail-closed — halting until next trading day."
+                )
+                self.halted_until = date.today()
+                return True
+            logging.error(f"Circuit breaker: could not fetch account (market closed): {e}")
             return False
 
         last_equity = float(account.last_equity)
@@ -350,6 +451,18 @@ class TradingBot:
             trend_filter = current['close'] > current['ema200']
 
             if trend_filter and rsi_context and bb_context and macd_trigger:
+                ok, earnings_dates = self.fetch_earnings_calendar(symbol)
+                if not ok:
+                    logging.warning(
+                        f"{symbol}: skipped — could not verify earnings calendar (fail-closed)"
+                    )
+                    continue
+                in_window, match_date = self._is_within_earnings_window(earnings_dates)
+                if in_window:
+                    logging.info(
+                        f"{symbol}: skipped — earnings within 3-day window ({match_date})"
+                    )
+                    continue
                 logging.info(f"BUY Signal generated for {symbol}")
                 new_signals.append(symbol)
 
@@ -459,6 +572,20 @@ class TradingBot:
             return
 
         for symbol in pending:
+            ok, earnings_dates = self.fetch_earnings_calendar(symbol)
+            if not ok:
+                logging.warning(
+                    f"{symbol}: skipped — could not verify earnings calendar (fail-closed); leaving pending"
+                )
+                continue  # leave in pending_orders for next attempt
+            in_window, match_date = self._is_within_earnings_window(earnings_dates)
+            if in_window:
+                logging.info(
+                    f"{symbol}: skipped — earnings within 3-day window ({match_date})"
+                )
+                self._delete_pending_order(symbol)
+                continue
+
             try:
                 df = bars_df.loc[symbol].copy()
             except KeyError:
