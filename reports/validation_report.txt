@@ -1,0 +1,70 @@
+======================================================================
+STRATEGY VALIDATION REPORT
+======================================================================
+Trades: 73   Equity series: 1115 days
+
+1. STATISTICAL SIGNIFICANCE (one-sample t-test, H0: mean PnL% = 0)
+----------------------------------------------------------------------
+  n trades       : 73
+  mean PnL %     : 1.1556
+  std  PnL %     : 6.0562
+  t-statistic    : 1.6302
+  p-value        : 0.1074
+  significant @5%: False
+  WARNING: n=73 < 200 — institutionally insufficient sample.
+
+2. CORE PERFORMANCE METRICS (from daily equity curve)
+----------------------------------------------------------------------
+  Annualised return : 3.20%
+  Max drawdown      : -8.31%
+  Sharpe (rf=4.5%)  : -0.2793
+  Sortino           : -0.4132
+  Calmar            : 0.3854
+  Deflated Sharpe   : 0.9397  (CDF; closer to 1 = more confident)
+
+3. WALK-FORWARD ANALYSIS
+----------------------------------------------------------------------
+  W1  IS 2020-01-01..2024-06-30   OOS 2024-07-01..2024-12-31
+    IS : n= 61  win=60.66%  avg=1.18%  PF=1.80  ann=20.86%
+    OOS: n= 12  win=58.33%  avg=1.05%  PF=1.69  ann=35.27%
+    WFE (OOS/IS ann return): 1.691
+
+  W2  IS 2020-01-01..2023-12-31   OOS 2024-01-01..2024-12-31
+    IS : n= 52  win=59.62%  avg=1.06%  PF=1.72  ann=18.99%
+    OOS: n= 21  win=61.90%  avg=1.40%  PF=2.01  ann=35.76%
+    WFE (OOS/IS ann return): 1.883
+
+  W3  IS 2021-01-01..2023-12-31   OOS 2024-01-01..2024-12-31
+    IS : n= 52  win=59.62%  avg=1.06%  PF=1.72  ann=18.99%
+    OOS: n= 21  win=61.90%  avg=1.40%  PF=2.01  ann=35.76%
+    WFE (OOS/IS ann return): 1.883
+
+  Average WFE across windows: 1.819
+
+4. MONTE CARLO SIMULATION (10,000 bootstrap runs)
+----------------------------------------------------------------------
+  Starting equity : $1100.00
+  Trades per run  : 73  (resampled with replacement)
+
+  Final equity distribution:
+     5th  pct : $  1134.33
+    50th  pct : $  1265.38
+    95th  pct : $  1398.46
+
+  Max drawdown distribution:
+     5th  pct :   -7.11%
+    50th  pct :   -3.56%
+    95th  pct :   -1.91%
+
+  Risk of ruin (equity < $770): 0.00%
+
+5. VERDICT
+----------------------------------------------------------------------
+  Criteria checked:
+    p-value < 0.05         : False  (0.1074)
+    Sharpe > 1.0           : False  (-0.279)
+    Risk of ruin < 10%     : True  (0.00%)
+    Avg WFE > 0.5          : True  (1.819)
+
+  >>> VERDICT: NO-GO <<<
+======================================================================
