@@ -268,6 +268,22 @@ class TradingBot:
                 logging.critical("All positions closed and orders cancelled. Exiting bot.")
                 sys.exit(1)
 
+    def _persist_halted_until(self, value: str | None) -> None:
+        """Mirror self.halted_until to portfolio_state so the FastAPI sidecar
+        context endpoint can report the halted state. value is an ISO date string
+        or None to clear."""
+        try:
+            with self._get_conn() as conn:
+                if value is None:
+                    conn.execute("DELETE FROM portfolio_state WHERE key = 'halted_until'")
+                else:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO portfolio_state (key, value) VALUES ('halted_until', ?)",
+                        (value,),
+                    )
+        except Exception as e:
+            logging.error(f"Failed to persist halted_until={value}: {e}")
+
     def check_daily_loss_circuit_breaker(self) -> bool:
         """Circuit breaker: halt bot for the rest of the trading day if net daily
         PnL falls below -MAX_DAILY_LOSS_PCT. Returns True if breaker tripped."""
@@ -280,6 +296,7 @@ class TradingBot:
                     f"Fail-closed — halting until next trading day."
                 )
                 self.halted_until = date.today()
+                self._persist_halted_until(self.halted_until.isoformat())
                 return True
             logging.error(f"Circuit breaker: could not fetch account (market closed): {e}")
             return False
@@ -303,6 +320,7 @@ class TradingBot:
             except Exception as e:
                 logging.critical(f"Circuit breaker flatten failed: {e}")
             self.halted_until = date.today()
+            self._persist_halted_until(self.halted_until.isoformat())
             return True
 
         return False
@@ -648,6 +666,11 @@ class TradingBot:
             now_et = datetime.now(eastern)
             is_weekday = now_et.weekday() < 5
             today_str = now_et.strftime('%Y-%m-%d')
+
+            # Day rollover: clear stale halted_until so the sidecar reports halted=false
+            if self.halted_until is not None and self.halted_until != date.today():
+                self.halted_until = None
+                self._persist_halted_until(None)
 
             if is_weekday:
                 # 3:00 PM ET — Sentiment refresh

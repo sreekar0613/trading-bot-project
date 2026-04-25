@@ -1,0 +1,20 @@
+{
+  "name": "trading-bot-sidecar",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "spectrum-ts": "latest",
+    "groq-sdk": "latest",
+    "node-cron": "latest",
+    "dotenv": "latest"
+  },
+  "devDependencies": {
+    "tsx": "latest",
+    "typescript": "^5.0.0",
+    "@types/node": "latest",
+    "@types/node-cron": "latest"
+  }
+}

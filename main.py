@@ -3,9 +3,10 @@ import json
 import logging
 import os
 import re
+import sqlite3
 from collections import deque
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import aiofiles
@@ -15,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from utils.alpaca_client import fetch_account, fetch_positions
-from utils.database import get_universe, get_sentiment, get_trades, get_metrics
+from utils.database import DB_PATH, get_universe, get_sentiment, get_trades, get_metrics
 
 DASHBOARD_HTML = Path(__file__).resolve().parent / "dashboard.html"
 APP_JSX        = Path(__file__).resolve().parent / "app.jsx"
@@ -257,3 +258,55 @@ def metrics():
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Sidecar context aggregator (loopback only — no auth)
+# ---------------------------------------------------------------------------
+
+def _safe(fn, *args, **kwargs):
+    """Run fn, returning its result or {'error': str(exc)} on failure."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def _bot_status() -> dict:
+    """Read halted_until from portfolio_state and derive last_updated from log mtime.
+
+    NOTE: bot.py currently keeps halted_until in memory only. Until it persists
+    that value to portfolio_state (key='halted_until', ISO date string), this
+    field will always report halted=False.
+    """
+    halted = False
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            row = conn.execute(
+                "SELECT value FROM portfolio_state WHERE key = 'halted_until'"
+            ).fetchone()
+        if row and row[0] == date.today().isoformat():
+            halted = True
+    except Exception:
+        pass
+
+    last_updated = None
+    if LOG_FILE.exists():
+        last_updated = datetime.fromtimestamp(
+            LOG_FILE.stat().st_mtime, tz=timezone.utc
+        ).isoformat()
+
+    return {"halted": halted, "last_updated": last_updated}
+
+
+@app.get("/api/sidecar/context")
+def sidecar_context():
+    trades_data = _safe(get_trades, limit=10)
+    return {
+        "account": _safe(fetch_account),
+        "positions": _safe(fetch_positions),
+        "metrics": _safe(get_metrics),
+        "trades": trades_data,
+        "bot_status": _bot_status(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
