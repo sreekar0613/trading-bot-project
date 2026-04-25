@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pandas_ta as ta
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH   = REPO_ROOT / "trading_bot.db"
@@ -27,29 +28,10 @@ DB_PATH   = REPO_ROOT / "trading_bot.db"
 def calculate_rsi(close: pd.Series, period: int = 14) -> pd.Series:
     """
     Wilder's RSI (exponential smoothing, not simple average).
-
-    Parameters
-    ----------
-    close  : daily close prices
-    period : lookback window (default 14)
-
-    Returns
-    -------
-    pd.Series of RSI values in [0, 100]; NaN for first `period` rows.
     """
-    delta = close.diff()
-    gain  = delta.clip(lower=0)
-    loss  = (-delta).clip(lower=0)
-
-    # Wilder's smoothing = EWM with alpha = 1/period, adjust=False
-    avg_gain = gain.ewm(alpha=1 / period, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1 / period, adjust=False).mean()
-
-    rs  = avg_gain / avg_loss.replace(0, np.nan)
-    rsi = 100 - (100 / (1 + rs))
-
-    # Mask the warm-up period so callers see explicit NaN, not pseudo-values
-    rsi.iloc[:period] = np.nan
+    rsi = ta.rsi(close, length=period)
+    if rsi is None:
+        rsi = pd.Series(np.nan, index=close.index)
     return rsi
 
 
@@ -62,35 +44,21 @@ def calculate_macd(
     signal: int = 9,
 ) -> dict[str, pd.Series]:
     """
-    MACD indicator (Gerald Appel, standard EMA formulation).
-
-    Parameters
-    ----------
-    close  : daily close prices
-    fast   : fast EMA period (default 12)
-    slow   : slow EMA period (default 26)
-    signal : signal line EMA period (default 9)
-
-    Returns
-    -------
-    dict with keys:
-        'macd'      — MACD line (fast EMA − slow EMA)
-        'signal'    — signal line (EMA of MACD)
-        'histogram' — MACD − signal
+    MACD indicator.
     """
-    ema_fast    = close.ewm(span=fast,   adjust=False).mean()
-    ema_slow    = close.ewm(span=slow,   adjust=False).mean()
-    macd_line   = ema_fast - ema_slow
-    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+    macd_df = ta.macd(close, fast=fast, slow=slow, signal=signal)
+    if macd_df is None or macd_df.empty:
+        nan_series = pd.Series(np.nan, index=close.index)
+        return {"macd": nan_series, "signal": nan_series, "histogram": nan_series}
 
-    # Mask warm-up so callers have a clear NaN boundary
-    macd_line.iloc[:slow - 1]              = np.nan
-    signal_line.iloc[:slow - 1 + signal - 1] = np.nan
-
+    macd_line = macd_df[macd_df.columns[0]]
+    histogram = macd_df[macd_df.columns[1]]
+    signal_line = macd_df[macd_df.columns[2]]
+    
     return {
         "macd":      macd_line,
         "signal":    signal_line,
-        "histogram": macd_line - signal_line,
+        "histogram": histogram,
     }
 
 
@@ -102,28 +70,17 @@ def calculate_bollinger(
     std: int = 2,
 ) -> dict[str, pd.Series]:
     """
-    Bollinger Bands (John Bollinger, standard SMA formulation).
-
-    Parameters
-    ----------
-    close  : daily close prices
-    period : SMA lookback window (default 20)
-    std    : number of standard deviations for bands (default 2)
-
-    Returns
-    -------
-    dict with keys:
-        'upper'  — middle + std * rolling_std
-        'middle' — SMA(period)
-        'lower'  — middle − std * rolling_std
+    Bollinger Bands.
     """
-    middle     = close.rolling(window=period).mean()
-    rolling_sd = close.rolling(window=period).std(ddof=0)  # population std
+    bb_df = ta.bbands(close, length=period, std=std)
+    if bb_df is None or bb_df.empty:
+        nan_series = pd.Series(np.nan, index=close.index)
+        return {"upper": nan_series, "middle": nan_series, "lower": nan_series}
 
     return {
-        "upper":  middle + std * rolling_sd,
-        "middle": middle,
-        "lower":  middle - std * rolling_sd,
+        "lower":  bb_df[bb_df.columns[0]],
+        "middle": bb_df[bb_df.columns[1]],
+        "upper":  bb_df[bb_df.columns[2]],
     }
 
 
@@ -132,18 +89,10 @@ def calculate_bollinger(
 def calculate_ema(close: pd.Series, period: int = 200) -> pd.Series:
     """
     Exponential Moving Average (trend filter).
-
-    Parameters
-    ----------
-    close  : daily close prices
-    period : EMA span (default 200)
-
-    Returns
-    -------
-    pd.Series of EMA values; first `period − 1` rows are NaN.
     """
-    ema = close.ewm(span=period, adjust=False).mean()
-    ema.iloc[:period - 1] = np.nan
+    ema = ta.ema(close, length=period)
+    if ema is None:
+        ema = pd.Series(np.nan, index=close.index)
     return ema
 
 
@@ -156,38 +105,11 @@ def calculate_atr(
     period: int = 14,
 ) -> pd.Series:
     """
-    Average True Range (J. Welles Wilder, exponential smoothing).
-
-    True Range = max(high−low, |high−prev_close|, |low−prev_close|)
-    ATR        = Wilder's EWM of True Range (alpha = 1/period)
-
-    The first row has no prior close, so TR[0] = high[0] − low[0].
-
-    Parameters
-    ----------
-    high   : daily high prices
-    low    : daily low prices
-    close  : daily close prices
-    period : ATR period (default 14)
-
-    Returns
-    -------
-    pd.Series of ATR values; first `period` rows are NaN.
+    Average True Range.
     """
-    prev_close = close.shift(1)
-
-    tr = pd.concat(
-        [
-            high - low,
-            (high - prev_close).abs(),
-            (low  - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1)
-
-    # Row 0: prev_close is NaN → TR defaults to high - low (correct)
-    atr = tr.ewm(alpha=1 / period, adjust=False).mean()
-    atr.iloc[:period] = np.nan
+    atr = ta.atr(high, low, close, length=period)
+    if atr is None:
+        atr = pd.Series(np.nan, index=close.index)
     return atr
 
 

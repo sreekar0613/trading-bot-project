@@ -27,7 +27,8 @@ backtrader==1.9.78.123    # Backtesting framework
 vectorbt==0.26.1          # Alternative backtesting (optional)
 
 # Technical Indicators
-ta-lib==0.4.28            # Technical analysis library (requires C dependencies)
+pandas-ta==0.3.14b        # Alternative TA library (pure Python)
+numpy<2                   # Ensure numpy version compatible with pandas-ta
 
 # Scheduling & Automation
 schedule==1.2.1           # Job scheduling (daily signal checks)
