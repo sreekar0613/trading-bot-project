@@ -31,7 +31,7 @@ from indicators.technical import (
 )
 from config import (
     MAX_DAILY_LOSS_PCT, API_MAX_RETRIES, API_BACKOFF_BASE, EARNINGS_WINDOW_DAYS,
-    VIX_THRESHOLD, SPY_TREND_LOOKBACK
+    VIX_THRESHOLD, SPY_TREND_LOOKBACK, RISK_PER_TRADE
 )
 from strategy.regime import MarketRegimeDetector
 
@@ -89,7 +89,7 @@ class TradingBot:
         self.data_client = StockHistoricalDataClient(self.api_key, self.secret_key)
         self.finnhub_client = finnhub.Client(api_key=self.finnhub_key)
 
-        self.risk_per_trade = 0.025  # 2.5% risk per trade
+        self.risk_per_trade = RISK_PER_TRADE
         self.stop_loss_atr_multiplier = 2.5
 
         self._init_schema()
@@ -476,6 +476,43 @@ class TradingBot:
         end_time = datetime.now()
         start_time = end_time - timedelta(days=lookback_days)
 
+        # Primary: yfinance (avoids IEX 'recent SIP data' errors on Alpaca free tier)
+        logging.info(f"Fetching historical data via yfinance for {len(tickers)} ticker(s).")
+        try:
+            start_str = start_time.strftime('%Y-%m-%d')
+            end_str = end_time.strftime('%Y-%m-%d')
+            df = yf.download(tickers, start=start_str, end=end_str, progress=False)
+
+            if df is None or df.empty:
+                raise ValueError("yfinance returned empty dataframe")
+
+            # Normalize yfinance dataframe to match Alpaca schema
+            if isinstance(df.columns, pd.MultiIndex):
+                try:
+                    df = df.stack(level=1, future_stack=True)
+                except TypeError:
+                    df = df.stack(level=1)
+                df.index.names = ['timestamp', 'symbol']
+                df = df.swaplevel(0, 1)
+            else:
+                df['symbol'] = tickers[0]
+                df = df.set_index('symbol', append=True)
+                df = df.swaplevel(0, 1)
+                df.index.names = ['symbol', 'timestamp']
+
+            df.columns = [str(c).lower() for c in df.columns]
+
+            # Align timezone to UTC to match Alpaca
+            if df.index.levels[1].tz is None:
+                df.index = df.index.set_levels(pd.to_datetime(df.index.levels[1]).tz_localize('UTC'), level=1)
+            else:
+                df.index = df.index.set_levels(pd.to_datetime(df.index.levels[1]).tz_convert('UTC'), level=1)
+
+            return df
+        except Exception as yf_e:
+            logging.warning(f"yfinance failed ({yf_e}), falling back to Alpaca IEX.")
+
+        # Fallback: Alpaca IEX free feed
         request = StockBarsRequest(
             symbol_or_symbols=tickers,
             timeframe=TimeFrame.Day,
@@ -483,48 +520,12 @@ class TradingBot:
             start=start_time,
             end=end_time
         )
-
         try:
             bars = self.alpaca_call_with_backoff(self.data_client.get_stock_bars, request)
             return bars.df
         except Exception as e:
-            logging.warning(f"Alpaca feed failed ({e}). Falling back to yfinance.")
-            try:
-                # yfinance fallback
-                start_str = start_time.strftime('%Y-%m-%d')
-                end_str = end_time.strftime('%Y-%m-%d')
-                df = yf.download(tickers, start=start_str, end=end_str, progress=False)
-                
-                if df.empty:
-                    logging.error("yfinance returned empty dataframe.")
-                    return None
-
-                # Normalize yfinance dataframe to match Alpaca schema
-                if isinstance(df.columns, pd.MultiIndex):
-                    try:
-                        df = df.stack(level=1, future_stack=True)
-                    except TypeError:
-                        df = df.stack(level=1)
-                    df.index.names = ['timestamp', 'symbol']
-                    df = df.swaplevel(0, 1)
-                else:
-                    df['symbol'] = tickers[0]
-                    df = df.set_index('symbol', append=True)
-                    df = df.swaplevel(0, 1)
-                    df.index.names = ['symbol', 'timestamp']
-                
-                df.columns = [str(c).lower() for c in df.columns]
-                
-                # Align timezone to UTC to match Alpaca
-                if df.index.levels[1].tz is None:
-                    df.index = df.index.set_levels(pd.to_datetime(df.index.levels[1]).tz_localize('UTC'), level=1)
-                else:
-                    df.index = df.index.set_levels(pd.to_datetime(df.index.levels[1]).tz_convert('UTC'), level=1)
-                    
-                return df
-            except Exception as yf_e:
-                logging.error(f"yfinance fallback failed: {yf_e}")
-                return None
+            logging.error(f"Alpaca IEX fallback also failed: {e}")
+            return None
 
     def job_scan_signals(self):
         """Run daily at 4:05 PM ET to generate signals for the next morning."""

@@ -17,3 +17,6 @@ RSI_OVERSOLD_THRESHOLD = 40
 VIX_THRESHOLD = 25
 SPY_TREND_LOOKBACK = 200
 
+# Phase 4: 1.5% risk/trade for first 4 weeks (reduced from 2.5% per Task #5)
+RISK_PER_TRADE = 0.015
+
