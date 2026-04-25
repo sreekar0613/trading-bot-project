@@ -17,7 +17,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import ta
+from ta.momentum import RSIIndicator
+from ta.trend import MACD, EMAIndicator
+from ta.volatility import BollingerBands, AverageTrueRange
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH   = REPO_ROOT / "trading_bot.db"
@@ -29,7 +31,7 @@ def calculate_rsi(close: pd.Series, period: int = 14) -> pd.Series:
     """
     Wilder's RSI (exponential smoothing, not simple average).
     """
-    rsi_ind = ta.momentum.RSIIndicator(close=close, window=period)
+    rsi_ind = RSIIndicator(close=close, window=period)
     rsi = rsi_ind.rsi()
     return rsi
 
@@ -45,7 +47,7 @@ def calculate_macd(
     """
     MACD indicator.
     """
-    macd_ind = ta.trend.MACD(close=close, window_slow=slow, window_fast=fast, window_sign=signal)
+    macd_ind = MACD(close=close, window_slow=slow, window_fast=fast, window_sign=signal)
     
     return {
         "macd":      macd_ind.macd(),
@@ -64,7 +66,7 @@ def calculate_bollinger(
     """
     Bollinger Bands.
     """
-    bb_ind = ta.volatility.BollingerBands(close=close, window=period, window_dev=std)
+    bb_ind = BollingerBands(close=close, window=period, window_dev=std)
 
     return {
         "lower":  bb_ind.bollinger_lband(),
@@ -79,7 +81,7 @@ def calculate_ema(close: pd.Series, period: int = 200) -> pd.Series:
     """
     Exponential Moving Average (trend filter).
     """
-    ema_ind = ta.trend.EMAIndicator(close=close, window=period)
+    ema_ind = EMAIndicator(close=close, window=period)
     return ema_ind.ema_indicator()
 
 
@@ -94,7 +96,7 @@ def calculate_atr(
     """
     Average True Range.
     """
-    atr_ind = ta.volatility.AverageTrueRange(high=high, low=low, close=close, window=period)
+    atr_ind = AverageTrueRange(high=high, low=low, close=close, window=period)
     return atr_ind.average_true_range()
 
 
