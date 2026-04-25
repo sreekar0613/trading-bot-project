@@ -32,6 +32,7 @@ from config import (
     MAX_DAILY_LOSS_PCT, API_MAX_RETRIES, API_BACKOFF_BASE, EARNINGS_WINDOW_DAYS,
     VIX_THRESHOLD, SPY_TREND_LOOKBACK
 )
+from strategy.regime import MarketRegimeDetector
 
 # Setup logging
 LOG_FILE = REPO_ROOT / 'logs' / 'paper_trading.log'
@@ -126,10 +127,16 @@ class TradingBot:
                     last_heartbeat TIMESTAMP,
                     open_position_count INTEGER DEFAULT 0,
                     halted_until TEXT,
-                    peak_equity REAL
+                    peak_equity REAL,
+                    current_regime INTEGER DEFAULT 2
                 )
             """)
             conn.execute("INSERT OR IGNORE INTO portfolio_state (id) VALUES (1)")
+            # In case the table exists without current_regime, try adding it
+            try:
+                conn.execute("ALTER TABLE portfolio_state ADD COLUMN current_regime INTEGER DEFAULT 2")
+            except sqlite3.OperationalError:
+                pass
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS earnings_calendar (
                     symbol         TEXT,
@@ -513,6 +520,17 @@ class TradingBot:
             logging.info("regime: risk-off, skipping entries")
             return
 
+        try:
+            spy_df = yf.download(['SPY'], period="2y", progress=False)
+            detector = MarketRegimeDetector()
+            current_regime = detector.predict(spy_df)
+            detector.save()
+            with self._get_conn() as conn:
+                conn.execute("UPDATE portfolio_state SET current_regime = ? WHERE id = 1", (current_regime,))
+            logging.info(f"Market Regime updated to State {current_regime}")
+        except Exception as e:
+            logging.error(f"Failed to update market regime: {e}")
+
         universe = self.get_active_universe()
         tickers = list(universe.keys())
         if not tickers:
@@ -746,6 +764,98 @@ class TradingBot:
         self.pending_orders = []
         logging.info("Execution job completed.")
 
+    def job_check_exits(self):
+        """Evaluate open positions for exit signals based on regime-aware parameters."""
+        logging.info("--- Job: Checking Exits ---")
+
+        if self._is_paused():
+            logging.info("System is paused via override. Skipping exits.")
+            return
+
+        if self.halted_until == date.today():
+            logging.warning("Bot halted by daily loss circuit breaker — skipping exit execution.")
+            return
+
+        try:
+            with self._get_conn() as conn:
+                row = conn.execute("SELECT current_regime FROM portfolio_state WHERE id = 1").fetchone()
+                regime = int(row[0]) if row and row[0] is not None else 2
+        except Exception as e:
+            logging.error(f"Failed to read current_regime: {e}")
+            regime = 2
+
+        if regime == 0:
+            atr_mult = 2.5
+            rsi_exit = 75
+            time_stop = 7
+        elif regime == 1:
+            atr_mult = 1.5
+            rsi_exit = 55
+            time_stop = 3
+        else:
+            atr_mult = 3.0
+            rsi_exit = 65
+            time_stop = 14
+
+        logging.info(f"Using State {regime} exit rules: ATR Mult={atr_mult}, RSI Exit={rsi_exit}, Time Stop={time_stop}")
+
+        try:
+            positions = self.alpaca_call_with_backoff(self.trading_client.get_all_positions)
+        except Exception as e:
+            logging.error(f"Failed to fetch positions for exit check: {e}")
+            return
+
+        if not positions:
+            logging.info("No open positions to check.")
+            return
+
+        symbols = [p.symbol for p in positions]
+        bars_df = self.fetch_historical_batch(symbols, lookback_days=60)
+
+        if bars_df is None or bars_df.empty:
+            logging.error("Failed to fetch historical data for exits.")
+            return
+
+        for p in positions:
+            symbol = p.symbol
+            try:
+                df = bars_df.loc[symbol].copy()
+            except KeyError:
+                continue
+
+            if len(df) < 15:
+                continue
+
+            rsi = calculate_rsi(df['close'])
+            atr = calculate_atr(df['high'], df['low'], df['close'])
+            current_rsi = rsi.iloc[-1]
+            current_atr = atr.iloc[-1]
+            current_price = df.iloc[-1]['close']
+
+            # Estimate peak price over the holding period (using time_stop as a rough window)
+            peak_price = df['high'].iloc[-time_stop:].max()
+
+            exit_reasons = []
+
+            # 1. RSI Overbought
+            if current_rsi > rsi_exit:
+                exit_reasons.append(f"RSI {current_rsi:.1f} > {rsi_exit}")
+
+            # 3. Trailing Stop
+            if (peak_price - current_price) > (atr_mult * current_atr):
+                exit_reasons.append(f"Trailing stop {atr_mult}x breached (Peak: {peak_price:.2f}, Drop: {peak_price - current_price:.2f})")
+
+            # Execute exit if any conditions met
+            if exit_reasons:
+                logging.info(f"Closing {symbol}. Reasons: {', '.join(exit_reasons)}")
+                try:
+                    self.alpaca_call_with_backoff(
+                        self.trading_client.close_position,
+                        symbol_or_asset_id=symbol
+                    )
+                except Exception as e:
+                    logging.error(f"Failed to close position {symbol}: {e}")
+
     def run(self):
         """Infinite loop to process timezone-aware scheduling."""
         eastern = pytz.timezone('US/Eastern')
@@ -755,6 +865,7 @@ class TradingBot:
             'sentiment': None,
             'scan': None,
             'execute': None,
+            'exits': None,
         }
 
         last_kill_switch_check = None
@@ -775,6 +886,12 @@ class TradingBot:
                     if executed_today['sentiment'] != today_str:
                         self.job_populate_sentiment()
                         executed_today['sentiment'] = today_str
+
+                # 3:45 PM ET — Check Exits
+                if now_et.hour == 15 and now_et.minute == 45:
+                    if executed_today['exits'] != today_str:
+                        self.job_check_exits()
+                        executed_today['exits'] = today_str
 
                 # 4:05 PM ET Scan
                 if now_et.hour == 16 and now_et.minute == 5:

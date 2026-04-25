@@ -2,6 +2,7 @@ import sqlite3
 from pathlib import Path
 import pandas as pd
 import numpy as np
+import yfinance as yf
 from indicators.technical import (
     calculate_rsi,
     calculate_macd,
@@ -10,15 +11,16 @@ from indicators.technical import (
     calculate_atr,
     load_price_history
 )
+from strategy.regime import MarketRegimeDetector
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = REPO_ROOT / "trading_bot.db"
 
-def generate_signals(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+def generate_signals(symbol: str, start_date: str, end_date: str, regime_series: pd.Series = None) -> pd.DataFrame:
     """
     Generate entry and exit signals for a given symbol based on strategy rules.
-    1. Entry (ALL must be true): RSI < 35, MACD crossover (>0), Close < Lower BB, Close > EMA200
-    2. Exit (ANY triggers): RSI > 65, 21 calendar days held, Trailing stop (2.5x ATR from peak)
+    1. Entry (ALL must be true): RSI < 40, MACD crossover (>0), Close < Lower BB, Close > EMA200
+    2. Exit (ANY triggers): Regime-aware dynamic parameters
     """
     # Load price data
     df = load_price_history(symbol, DB_PATH)
@@ -97,20 +99,44 @@ def generate_signals(symbol: str, start_date: str, end_date: str) -> pd.DataFram
             if row['close'] > peak_price:
                 peak_price = row['close']
                 
+            atr_mult = 3.0
+            rsi_exit = 65
+            time_stop = 14
+            
+            if regime_series is not None:
+                try:
+                    # Match by exact date or nearest previous
+                    # regime_series index is datetime
+                    # We can use get_indexer with method='pad'
+                    idx = regime_series.index.get_indexer([pd.Timestamp(current_date).tz_localize(None)], method='pad')[0]
+                    if idx >= 0:
+                        current_regime = regime_series.iloc[idx]
+                        if current_regime == 0:
+                            atr_mult = 2.5
+                            rsi_exit = 75
+                            time_stop = 7
+                        elif current_regime == 1:
+                            atr_mult = 1.5
+                            rsi_exit = 55
+                            time_stop = 3
+                        # state 2 stays at defaults
+                except Exception:
+                    pass
+                
             exit_reasons = []
             
             # 1. RSI Overbought
-            if row['rsi'] > 65:
-                exit_reasons.append(f"RSI {row['rsi']:.1f}")
+            if row['rsi'] > rsi_exit:
+                exit_reasons.append(f"RSI {row['rsi']:.1f} > {rsi_exit}")
                 
-            # 2. Max Holding Period (21 calendar days)
+            # 2. Max Holding Period (calendar days)
             days_held = (current_date - entry_date).days
-            if days_held >= 21:
-                exit_reasons.append(f"{days_held} days elapsed")
+            if days_held >= time_stop:
+                exit_reasons.append(f"{days_held} days elapsed (stop={time_stop})")
                 
-            # 3. Trailing Stop (2.5x ATR from Peak)
-            if (peak_price - row['close']) > (2.5 * entry_atr):
-                exit_reasons.append(f"Trailing stop (Peak: {peak_price:.2f}, Drop: {peak_price - row['close']:.2f})")
+            # 3. Trailing Stop
+            if (peak_price - row['close']) > (atr_mult * entry_atr):
+                exit_reasons.append(f"Trailing stop {atr_mult}x (Peak: {peak_price:.2f}, Drop: {peak_price - row['close']:.2f})")
                 
             if exit_reasons:
                 signals.append({
@@ -139,9 +165,23 @@ def scan_universe(start_date: str = '2020-07-01', end_date: str = '2024-12-31') 
     tickers_df = pd.read_sql_query("SELECT symbol FROM fundamental_universe", conn)
     conn.close()
     
+    print("Fitting regime model on SPY...")
+    try:
+        spy_df = yf.download('SPY', start='2010-01-01', end=end_date, progress=False)
+        # Flatten multiindex columns if needed
+        if isinstance(spy_df.columns, pd.MultiIndex):
+            spy_df.columns = spy_df.columns.get_level_values(0)
+        detector = MarketRegimeDetector()
+        regime_series = detector.predict_all(spy_df)
+        detector.save()
+        print("Regime model fitted and saved.")
+    except Exception as e:
+        print(f"Warning: Failed to fit regime model: {e}")
+        regime_series = None
+    
     all_signals = []
     for symbol in tickers_df['symbol']:
-        sig_df = generate_signals(symbol, start_date, end_date)
+        sig_df = generate_signals(symbol, start_date, end_date, regime_series)
         if not sig_df.empty:
             all_signals.append(sig_df)
             
