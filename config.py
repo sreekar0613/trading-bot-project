@@ -9,3 +9,6 @@ API_BACKOFF_BASE = 2
 
 # Earnings exclusion: block entries if earnings fall within today-1 .. today+N days.
 EARNINGS_WINDOW_DAYS = 3
+
+# RSI oversold context threshold (relaxed from 35 to 40 per Task #5 validation)
+RSI_OVERSOLD_THRESHOLD = 40

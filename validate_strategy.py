@@ -1,6 +1,7 @@
 """Walk-forward + Monte Carlo validation on backtest results."""
 from __future__ import annotations
 
+import argparse
 import io
 from pathlib import Path
 
@@ -9,9 +10,18 @@ import pandas as pd
 from scipy import stats
 
 REPO = Path(__file__).resolve().parent
-TRADES_CSV = REPO / "reports" / "backtest_results.csv"
-EQUITY_CSV = REPO / "reports" / "equity_curve.csv"
-REPORT_TXT = REPO / "reports" / "validation_report.txt"
+
+
+def _paths(variant: str | None):
+    suffix = f"_{variant}" if variant else ""
+    return (
+        REPO / "reports" / f"backtest_results{suffix}.csv",
+        REPO / "reports" / f"equity_curve{suffix}.csv",
+        REPO / "reports" / f"validation_report{suffix}.txt",
+    )
+
+
+TRADES_CSV, EQUITY_CSV, REPORT_TXT = _paths(None)
 
 STARTING_EQUITY = 1100.0
 RUIN_THRESHOLD = 770.0
@@ -123,6 +133,13 @@ def monte_carlo(pnl_dollars: np.ndarray, n_runs: int = MC_RUNS) -> dict:
 
 
 def main() -> None:
+    global TRADES_CSV, EQUITY_CSV, REPORT_TXT
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--variant", default=None,
+                        help="Optional CSV suffix, e.g. 'relaxed'")
+    args = parser.parse_args()
+    TRADES_CSV, EQUITY_CSV, REPORT_TXT = _paths(args.variant)
+
     buf = io.StringIO()
 
     def out(line: str = "") -> None:

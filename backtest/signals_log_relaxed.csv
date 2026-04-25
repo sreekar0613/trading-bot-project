@@ -1,0 +1,281 @@
+date,symbol,signal_type,price,atr,reason,days_held
+2021-05-21,NVDA,entry,14.96,0.5126777259349925,"Entry: RSI context 38.4, MACD cross, BB context",0
+2021-05-24,ADBE,entry,497.82,11.081811546479893,"Entry: RSI context 36.3, MACD cross, BB context",0
+2021-05-24,QCOM,entry,119.14,3.210585071035375,"Entry: RSI context 35.7, MACD cross, BB context",0
+2021-05-25,MSFT,entry,242.0,4.488062297366716,"Entry: RSI context 35.9, MACD cross, BB context",0
+2021-05-26,DIS,entry,172.41,3.397229026351483,"Entry: RSI context 25.5, MACD cross, BB context",0
+2021-05-26,TSLA,entry,206.37,9.95333418781455,"Entry: RSI context 30.1, MACD cross, BB context",0
+2021-05-28,NVDA,exit,16.21,0.4987065859753028,Exit: RSI 67.4,7
+2021-06-10,ADBE,exit,535.77,11.019767073049346,Exit: RSI 70.5,17
+2021-06-14,MSFT,exit,249.91,3.7317893625486875,Exit: RSI 65.1,20
+2021-06-14,QCOM,exit,123.69,2.407102886924004,Exit: 21 days elapsed,21
+2021-06-16,DIS,exit,170.55,2.5187502342964008,Exit: 21 days elapsed,21
+2021-06-16,TSLA,exit,201.52,7.5766980348847435,Exit: 21 days elapsed,21
+2021-06-22,HD,entry,278.14,4.624078557731314,"Entry: RSI context 34.0, MACD cross, BB context",0
+2021-06-23,DIS,entry,171.38,2.494889872416655,"Entry: RSI context 35.9, MACD cross, BB context",0
+2021-06-25,UNH,entry,372.92,5.608170663328428,"Entry: RSI context 33.0, MACD cross, BB context",0
+2021-06-28,INTC,entry,52.6,0.9967344518159656,"Entry: RSI context 37.6, MACD cross, BB context",0
+2021-06-28,WFC,entry,40.84,1.0645189651849865,"Entry: RSI context 29.7, MACD cross, BB context",0
+2021-06-30,BAC,entry,36.66,0.7920891461439468,"Entry: RSI context 28.7, MACD cross, BB context",0
+2021-06-30,GS,entry,337.65,7.300571467761691,"Entry: RSI context 34.8, MACD cross, BB context",0
+2021-07-01,HD,exit,286.11,4.018373382305353,Exit: RSI 65.1,9
+2021-07-01,JPM,entry,138.37,2.4707372604260542,"Entry: RSI context 25.8, MACD cross, BB context",0
+2021-07-08,BAC,exit,34.49,0.7846852973077156,"Exit: Trailing stop (Peak: 36.96, Drop: 2.47)",8
+2021-07-08,GS,exit,319.26,7.263386427492341,"Exit: Trailing stop (Peak: 337.65, Drop: 18.39)",8
+2021-07-08,WFC,exit,37.73,1.0367963899931887,"Exit: Trailing stop (Peak: 40.84, Drop: 3.11)",10
+2021-07-12,DIS,exit,180.19,3.31881215421529,Exit: RSI 65.4,19
+2021-07-12,UNH,exit,383.35,5.198995791487225,Exit: RSI 65.4,17
+2021-07-19,INTC,exit,49.99,1.0082271106715108,"Exit: 21 days elapsed + Trailing stop (Peak: 52.60, Drop: 2.61)",21
+2021-07-19,JPM,exit,130.2,3.200360904807375,"Exit: Trailing stop (Peak: 140.41, Drop: 10.21)",18
+2021-07-22,INTC,entry,51.22,1.0105265897031015,"Entry: RSI context 38.3, MACD cross, BB context",0
+2021-07-23,INTC,exit,48.56,1.1762032618671656,"Exit: Trailing stop (Peak: 51.22, Drop: 2.66)",1
+2021-07-29,BAC,entry,34.4,0.8715311105652707,"Entry: RSI context 31.1, MACD cross, BB context",0
+2021-07-29,JPM,entry,135.53,2.8443996321644627,"Entry: RSI context 35.3, MACD cross, BB context",0
+2021-07-29,XOM,entry,49.35,1.218838238534648,"Entry: RSI context 27.3, MACD cross, BB context",0
+2021-08-11,BAC,exit,37.32,0.8730424223035059,Exit: RSI 66.4,13
+2021-08-11,JPM,exit,142.79,2.7589058448394788,Exit: RSI 65.2,13
+2021-08-18,XOM,exit,46.22,1.0855552774008093,"Exit: Trailing stop (Peak: 49.35, Drop: 3.13)",20
+2021-08-26,XOM,entry,46.53,1.0990520601741895,"Entry: RSI context 29.9, MACD cross, BB context",0
+2021-09-16,XOM,exit,47.44,1.121497524329952,Exit: 21 days elapsed,21
+2021-09-24,BAC,entry,37.66,0.8665374010449295,"Entry: RSI context 39.2, MACD cross, BB context",0
+2021-09-24,JPM,entry,144.46,2.8311456170405362,"Entry: RSI context 37.8, MACD cross, BB context",0
+2021-09-24,ORCL,entry,84.38,1.5301511187138128,"Entry: RSI context 36.3, MACD cross, BB context",0
+2021-09-27,BAC,exit,38.67,0.8874990152560063,Exit: RSI 65.7,3
+2021-09-27,JPM,exit,147.95,2.901778072966212,Exit: RSI 66.6,3
+2021-09-30,ORCL,exit,81.72,1.7747463583294771,"Exit: Trailing stop (Peak: 85.56, Drop: 3.84)",6
+2021-10-08,DIS,entry,172.64,3.778538618029448,"Entry: RSI context 35.1, MACD cross, BB context",0
+2021-10-08,MSFT,entry,284.1,5.202210189590405,"Entry: RSI context 32.2, MACD cross, BB context",0
+2021-10-08,UNH,entry,377.56,7.552049292447622,"Entry: RSI context 29.6, MACD cross, BB context",0
+2021-10-11,GOOGL,entry,137.77,2.4732271992660384,"Entry: RSI context 34.0, MACD cross, BB context",0
+2021-10-11,PG,entry,126.11,1.5896691134798588,"Entry: RSI context 34.0, MACD cross, BB context",0
+2021-10-13,ADBE,entry,591.31,13.08509419309338,"Entry: RSI context 21.1, MACD cross, BB context",0
+2021-10-14,NVDA,entry,21.7,0.6350593116308199,"Entry: RSI context 34.3, MACD cross, BB context",0
+2021-10-15,UNH,exit,395.7,8.757238479392429,Exit: RSI 66.1,7
+2021-10-19,MSFT,exit,297.04,4.742610485266548,Exit: RSI 65.7,11
+2021-10-25,ADBE,exit,647.11,12.283037506631977,Exit: RSI 66.0,12
+2021-10-25,NVDA,exit,23.11,0.585574199505547,Exit: RSI 67.2,11
+2021-10-29,DIS,exit,165.2,3.077578509950619,Exit: 21 days elapsed,21
+2021-11-01,GOOGL,exit,142.28,3.02707761896163,Exit: 21 days elapsed,21
+2021-11-01,META,entry,327.45,9.603468263643137,"Entry: RSI context 33.1, MACD cross, BB context",0
+2021-11-01,PG,exit,127.19,1.5897409446116284,Exit: 21 days elapsed,21
+2021-11-22,META,exit,338.48,9.431786399721595,Exit: 21 days elapsed,21
+2021-12-06,JNJ,entry,144.16,2.2829009919554397,"Entry: RSI context 33.0, MACD cross, BB context",0
+2021-12-10,META,entry,327.21,10.03089581701972,"Entry: RSI context 33.5, MACD cross, BB context",0
+2021-12-10,ORCL,entry,96.59,2.84246390527196,"Entry: RSI context 30.5, MACD cross, BB context",0
+2021-12-10,WFC,entry,45.15,1.3199971774963661,"Entry: RSI context 38.9, MACD cross, BB context",0
+2021-12-10,XOM,entry,54.29,1.3340742236041574,"Entry: RSI context 39.7, MACD cross, BB context",0
+2021-12-13,JNJ,exit,149.06,2.282201943398047,Exit: RSI 66.6,7
+2021-12-13,ORCL,exit,94.99,2.895145054895391,Exit: RSI 66.2,3
+2021-12-27,GS,entry,348.78,8.23197269803806,"Entry: RSI context 38.2, MACD cross, BB context",0
+2021-12-27,JPM,entry,140.94,2.8806934915882936,"Entry: RSI context 36.0, MACD cross, BB context",0
+2021-12-31,META,exit,333.7,9.212521546111486,Exit: 21 days elapsed,21
+2021-12-31,WFC,exit,43.11,1.0558378530997254,Exit: 21 days elapsed,21
+2021-12-31,XOM,exit,52.74,1.1263003738946125,Exit: 21 days elapsed,21
+2022-01-04,JPM,exit,149.54,2.858227884353004,Exit: RSI 65.9,8
+2022-01-14,GS,exit,342.45,8.959655747108014,"Exit: Trailing stop (Peak: 366.11, Drop: 23.66)",18
+2022-01-28,JNJ,entry,151.98,2.5938242218290295,"Entry: RSI context 34.2, MACD cross, BB context",0
+2022-01-28,V,entry,220.83,6.667466399057979,"Entry: RSI context 31.9, MACD cross, BB context",0
+2022-01-31,MA,entry,376.52,12.976865714714775,"Entry: RSI context 35.9, MACD cross, BB context",0
+2022-02-01,AAPL,entry,170.81,4.824842314872887,"Entry: RSI context 31.1, MACD cross, BB context",0
+2022-02-01,GOOGL,entry,136.36,3.7660889740771912,"Entry: RSI context 25.1, MACD cross, BB context",0
+2022-02-01,HD,entry,330.91,8.867328414580435,"Entry: RSI context 22.9, MACD cross, BB context",0
+2022-02-01,MA,exit,382.36,12.879946735092291,Exit: RSI 67.2,1
+2022-02-01,V,exit,224.72,6.713478680820402,Exit: RSI 66.6,4
+2022-02-02,GOOGL,exit,146.69,4.48065404735739,Exit: RSI 65.4,1
+2022-02-02,NVDA,entry,25.2,1.5308307135462262,"Entry: RSI context 26.7, MACD cross, BB context",0
+2022-02-02,QCOM,entry,171.14,7.148073272426012,"Entry: RSI context 34.4, MACD cross, BB context",0
+2022-02-03,AMD,entry,120.06,7.595465476798589,"Entry: RSI context 24.4, MACD cross, BB context",0
+2022-02-08,TSLA,entry,307.21,19.6898357323055,"Entry: RSI context 31.6, MACD cross, BB context",0
+2022-02-11,AMD,exit,113.11,7.774111618245897,"Exit: Trailing stop (Peak: 132.86, Drop: 19.75)",8
+2022-02-11,QCOM,exit,149.51,7.36637660097201,"Exit: Trailing stop (Peak: 171.14, Drop: 21.63)",9
+2022-02-17,HD,exit,312.4,7.529994501902151,"Exit: Trailing stop (Peak: 335.43, Drop: 23.03)",16
+2022-02-18,JNJ,exit,145.45,2.2245073208000217,"Exit: 21 days elapsed + Trailing stop (Peak: 152.85, Drop: 7.40)",21
+2022-02-22,AAPL,exit,161.0,4.147039909185502,Exit: 21 days elapsed,21
+2022-02-23,NVDA,exit,22.34,1.5595047791258374,"Exit: 21 days elapsed + Trailing stop (Peak: 26.66, Drop: 4.32)",21
+2022-02-23,TSLA,exit,254.68,18.033487264254298,"Exit: Trailing stop (Peak: 310.50, Drop: 55.82)",15
+2022-02-25,MSFT,entry,287.73,9.210281455738285,"Entry: RSI context 33.4, MACD cross, BB context",0
+2022-03-01,TSLA,entry,288.07,18.404509833256117,"Entry: RSI context 32.2, MACD cross, BB context",0
+2022-03-03,JNJ,entry,150.06,2.7988598288101003,"Entry: RSI context 27.9, MACD cross, BB context",0
+2022-03-08,MSFT,exit,266.66,9.204993399044755,"Exit: Trailing stop (Peak: 290.27, Drop: 23.61)",11
+2022-03-15,JNJ,exit,156.91,3.051161710445633,Exit: RSI 66.2,12
+2022-03-16,GOOGL,entry,132.23,4.221674928087845,"Entry: RSI context 36.1, MACD cross, BB context",0
+2022-03-16,MSFT,entry,284.89,9.558310693175493,"Entry: RSI context 35.1, MACD cross, BB context",0
+2022-03-16,NVDA,entry,24.46,1.4402185023733436,"Entry: RSI context 37.1, MACD cross, BB context",0
+2022-03-17,BAC,entry,38.83,1.3944131970851528,"Entry: RSI context 24.5, MACD cross, BB context",0
+2022-03-17,WFC,entry,46.49,1.7955213785996895,"Entry: RSI context 27.7, MACD cross, BB context",0
+2022-03-18,AAPL,entry,160.58,4.798831463077362,"Entry: RSI context 32.7, MACD cross, BB context",0
+2022-03-21,PG,entry,135.1,2.95012695386761,"Entry: RSI context 28.5, MACD cross, BB context",0
+2022-03-22,TSLA,exit,331.42,16.944313119846456,Exit: 21 days elapsed,21
+2022-03-29,AAPL,exit,175.4,4.327243975411773,Exit: RSI 67.5,11
+2022-04-05,BAC,exit,36.21,1.14897246208219,"Exit: Trailing stop (Peak: 39.88, Drop: 3.67)",19
+2022-04-05,WFC,exit,43.47,1.575913065181374,"Exit: Trailing stop (Peak: 48.21, Drop: 4.74)",19
+2022-04-06,GOOGL,exit,135.38,3.3118745666349305,Exit: 21 days elapsed,21
+2022-04-06,MSFT,exit,289.67,7.5607529726218665,Exit: 21 days elapsed,21
+2022-04-06,NVDA,exit,24.35,1.356882629889454,"Exit: 21 days elapsed + Trailing stop (Peak: 28.61, Drop: 4.26)",21
+2022-04-11,PG,exit,142.93,2.555900520211908,Exit: 21 days elapsed,21
+2022-06-22,UNH,entry,457.19,12.812687734310654,"Entry: RSI context 30.4, MACD cross, BB context",0
+2022-06-23,JNJ,entry,161.0,3.083724015056226,"Entry: RSI context 32.0, MACD cross, BB context",0
+2022-07-13,UNH,exit,467.91,12.182699299619257,Exit: 21 days elapsed,21
+2022-07-14,JNJ,exit,157.44,2.671053570351642,Exit: 21 days elapsed,21
+2022-08-01,JNJ,entry,155.89,2.507320000980966,"Entry: RSI context 37.5, MACD cross, BB context",0
+2022-08-11,JNJ,exit,149.68,2.3658819442810137,"Exit: Trailing stop (Peak: 156.41, Drop: 6.73)",10
+2022-10-04,XOM,entry,84.65,2.6290267557409726,"Entry: RSI context 29.9, MACD cross, BB context",0
+2022-10-06,XOM,exit,90.67,2.7838547026542044,Exit: RSI 66.5,2
+2022-10-14,UNH,entry,481.61,12.140900708227683,"Entry: RSI context 38.6, MACD cross, BB context",0
+2022-10-24,UNH,exit,507.62,11.813211826941226,Exit: RSI 66.0,10
+2022-11-28,UNH,entry,498.52,11.920477905993355,"Entry: RSI context 35.2, MACD cross, BB context",0
+2022-12-19,UNH,exit,491.7,10.24865270833306,Exit: 21 days elapsed,21
+2023-03-06,MA,entry,359.91,6.202720866815184,"Entry: RSI context 33.4, MACD cross, BB context",0
+2023-03-10,MA,exit,340.46,6.691286981390785,"Exit: Trailing stop (Peak: 359.91, Drop: 19.45)",4
+2023-03-22,ORCL,entry,84.49,1.8910659847933304,"Entry: RSI context 35.9, MACD cross, BB context",0
+2023-03-28,XOM,entry,96.71,2.854377435995209,"Entry: RSI context 25.8, MACD cross, BB context",0
+2023-03-31,ORCL,exit,89.32,1.7719953531278698,Exit: RSI 69.0,9
+2023-04-03,XOM,exit,104.85,2.8112878474973755,Exit: RSI 66.4,6
+2023-05-08,AMD,entry,95.02,4.298861206438221,"Entry: RSI context 32.4, MACD cross, BB context",0
+2023-05-16,AMD,exit,101.45,4.231355411673025,Exit: RSI 65.9,8
+2023-05-30,COST,entry,489.01,8.409923661757631,"Entry: RSI context 37.6, MACD cross, BB context",0
+2023-05-31,INTC,entry,30.85,1.1149000150908464,"Entry: RSI context 35.4, MACD cross, BB context",0
+2023-06-02,XOM,entry,96.3,2.2851273068328433,"Entry: RSI context 36.8, MACD cross, BB context",0
+2023-06-05,COST,exit,498.71,8.435112445425334,Exit: RSI 66.2,6
+2023-06-13,INTC,exit,33.26,1.1221734683405957,Exit: RSI 65.5,13
+2023-06-23,XOM,exit,93.26,2.0541136931767467,Exit: 21 days elapsed,21
+2023-07-20,JNJ,entry,155.16,2.3315609136529387,"Entry: RSI context 37.5, MACD cross, BB context",0
+2023-07-21,JNJ,exit,156.74,2.332877991249157,Exit: RSI 72.0,1
+2023-07-24,XOM,entry,96.12,1.9091792798301832,"Entry: RSI context 38.0, MACD cross, BB context",0
+2023-08-11,XOM,exit,101.86,2.0132450478235793,Exit: RSI 68.3,18
+2023-08-22,NVDA,entry,45.63,1.8468027286698543,"Entry: RSI context 36.2, MACD cross, BB context",0
+2023-08-25,TSLA,entry,238.56,9.818066685068718,"Entry: RSI context 27.4, MACD cross, BB context",0
+2023-08-29,NFLX,entry,43.01,1.2523453396340503,"Entry: RSI context 36.5, MACD cross, BB context",0
+2023-08-30,NVDA,exit,49.24,2.0174865027497324,Exit: RSI 65.0,8
+2023-09-01,AMD,entry,109.42,4.562378389063844,"Entry: RSI context 39.3, MACD cross, BB context",0
+2023-09-06,COST,entry,526.85,6.795536677435388,"Entry: RSI context 33.5, MACD cross, BB context",0
+2023-09-13,NFLX,exit,41.23,1.2212458006573277,"Exit: Trailing stop (Peak: 44.86, Drop: 3.63)",15
+2023-09-14,COST,exit,544.4,6.192875127295387,Exit: RSI 67.0,8
+2023-09-15,TSLA,exit,274.44,10.80905751914869,Exit: 21 days elapsed,21
+2023-09-21,AMD,exit,96.09,4.109143172859406,"Exit: Trailing stop (Peak: 110.78, Drop: 14.69)",20
+2023-09-29,AMD,entry,102.84,3.847982267306558,"Entry: RSI context 32.8, MACD cross, BB context",0
+2023-10-02,NVDA,entry,44.77,1.4763407074424992,"Entry: RSI context 31.4, MACD cross, BB context",0
+2023-10-06,GOOGL,entry,136.48,2.8635405291950176,"Entry: RSI context 38.5, MACD cross, BB context",0
+2023-10-06,MSFT,entry,321.14,6.4911256410062705,"Entry: RSI context 33.7, MACD cross, BB context",0
+2023-10-09,CRM,entry,204.23,4.38034047952236,"Entry: RSI context 30.5, MACD cross, BB context",0
+2023-10-09,V,entry,230.02,3.277242293732032,"Entry: RSI context 28.5, MACD cross, BB context",0
+2023-10-18,NVDA,exit,42.16,1.593711995645529,"Exit: Trailing stop (Peak: 46.90, Drop: 4.74)",16
+2023-10-19,NFLX,entry,40.17,1.4059292640787597,"Entry: RSI context 27.3, MACD cross, BB context",0
+2023-10-19,XOM,entry,103.76,2.4192441447081015,"Entry: RSI context 34.0, MACD cross, BB context",0
+2023-10-20,AMD,exit,101.82,3.662538319646923,Exit: 21 days elapsed,21
+2023-10-23,V,exit,227.03,3.253434671311122,"Exit: Trailing stop (Peak: 236.70, Drop: 9.67)",14
+2023-10-25,CRM,exit,194.22,4.959302570796097,"Exit: Trailing stop (Peak: 206.76, Drop: 12.54)",16
+2023-10-25,GOOGL,exit,124.59,3.6474750173822876,"Exit: Trailing stop (Peak: 139.40, Drop: 14.81)",19
+2023-10-27,MSFT,exit,323.69,7.467286126419373,Exit: 21 days elapsed,21
+2023-10-27,XOM,exit,96.94,2.379093687960902,"Exit: Trailing stop (Peak: 103.76, Drop: 6.82)",8
+2023-10-30,AMZN,entry,132.76,4.362086164658081,"Entry: RSI context 34.4, MACD cross, BB context",0
+2023-10-31,INTC,entry,35.89,1.2430256164763998,"Entry: RSI context 31.5, MACD cross, BB context",0
+2023-11-01,AMD,entry,108.07,4.1608967240171175,"Entry: RSI context 33.1, MACD cross, BB context",0
+2023-11-01,CRM,entry,200.98,4.600601031970674,"Entry: RSI context 35.4, MACD cross, BB context",0
+2023-11-01,ORCL,entry,102.78,2.464811315718149,"Entry: RSI context 30.9, MACD cross, BB context",0
+2023-11-02,AAPL,entry,175.61,3.2502490794044547,"Entry: RSI context 30.1, MACD cross, BB context",0
+2023-11-03,MA,entry,380.56,7.042591486271631,"Entry: RSI context 23.4, MACD cross, BB context",0
+2023-11-03,NFLX,exit,43.24,1.2197781002388481,Exit: RSI 66.9,15
+2023-11-03,NVDA,entry,44.97,1.6283722377809449,"Entry: RSI context 36.9, MACD cross, BB context",0
+2023-11-06,COST,entry,550.34,8.21054866867369,"Entry: RSI context 35.1, MACD cross, BB context",0
+2023-11-06,JPM,entry,136.49,2.2931426416536946,"Entry: RSI context 26.1, MACD cross, BB context",0
+2023-11-06,META,entry,313.41,9.143296544129687,"Entry: RSI context 36.2, MACD cross, BB context",0
+2023-11-07,AMD,exit,113.48,4.05566421112695,Exit: RSI 65.1,6
+2023-11-07,AMZN,exit,142.76,3.7819291319341724,Exit: RSI 66.4,8
+2023-11-07,INTC,exit,38.26,1.0891257738932665,Exit: RSI 66.3,7
+2023-11-08,GOOGL,entry,130.72,2.979115972373395,"Entry: RSI context 30.7, MACD cross, BB context",0
+2023-11-10,AAPL,exit,184.43,3.219365882401145,Exit: RSI 69.2,8
+2023-11-10,NVDA,exit,48.31,1.5118691863553881,Exit: RSI 67.2,7
+2023-11-10,ORCL,exit,109.91,2.2946489305215834,Exit: RSI 65.2,9
+2023-11-14,COST,exit,570.71,8.252970557401177,Exit: RSI 69.7,8
+2023-11-14,CRM,exit,217.88,4.495081124487725,Exit: RSI 69.8,13
+2023-11-14,META,exit,333.69,8.383261972434168,Exit: RSI 68.0,8
+2023-11-15,JPM,exit,141.82,2.0959409927520474,Exit: RSI 66.2,9
+2023-11-20,MA,exit,398.62,5.814988365626111,Exit: RSI 65.6,17
+2023-11-29,GOOGL,exit,133.89,2.646554625319419,Exit: 21 days elapsed,21
+2024-01-03,UNH,entry,517.08,6.833487516806546,"Entry: RSI context 32.7, MACD cross, BB context",0
+2024-01-12,UNH,exit,497.31,8.211245895000536,"Exit: Trailing stop (Peak: 520.05, Drop: 22.74)",9
+2024-01-19,AAPL,entry,189.59,3.26566137284732,"Entry: RSI context 28.7, MACD cross, BB context",0
+2024-01-26,WFC,entry,47.73,0.8593972683239506,"Entry: RSI context 39.5, MACD cross, BB context",0
+2024-01-29,WFC,exit,47.77,0.8437260348722398,Exit: RSI 65.0,3
+2024-01-31,AAPL,exit,182.53,3.174695980828982,"Exit: Trailing stop (Peak: 193.14, Drop: 10.61)",12
+2024-03-13,GOOGL,entry,138.68,3.071393834381143,"Entry: RSI context 32.5, MACD cross, BB context",0
+2024-03-22,GOOGL,exit,149.55,3.5014084737223095,Exit: RSI 65.4,9
+2024-04-23,BAC,entry,36.62,0.8170025822506082,"Entry: RSI context 35.8, MACD cross, BB context",0
+2024-04-25,JPM,entry,185.36,3.3168681686716486,"Entry: RSI context 30.6, MACD cross, BB context",0
+2024-04-29,AMD,entry,160.215,6.866175255021391,"Entry: RSI context 28.8, MACD cross, BB context",0
+2024-04-30,NVDA,entry,86.37,3.9236916498435264,"Entry: RSI context 34.0, MACD cross, BB context",0
+2024-05-02,QCOM,entry,172.58,4.783298148975188,"Entry: RSI context 36.4, MACD cross, BB context",0
+2024-05-06,MSFT,entry,407.29,8.460293177099523,"Entry: RSI context 34.1, MACD cross, BB context",0
+2024-05-06,NFLX,entry,59.7,1.6356909847444858,"Entry: RSI context 35.5, MACD cross, BB context",0
+2024-05-06,QCOM,exit,174.27,4.645292791718402,Exit: RSI 65.8,4
+2024-05-07,V,entry,272.45,3.808989424249132,"Entry: RSI context 33.7, MACD cross, BB context",0
+2024-05-08,META,entry,469.37,16.796364484970088,"Entry: RSI context 29.1, MACD cross, BB context",0
+2024-05-09,MA,entry,450.24,6.238636182438077,"Entry: RSI context 27.0, MACD cross, BB context",0
+2024-05-10,JPM,exit,190.5,2.987818488803746,Exit: RSI 66.1,15
+2024-05-14,BAC,exit,36.74,0.6547095434647184,Exit: 21 days elapsed,21
+2024-05-20,AMD,exit,166.38,5.983821144602271,Exit: 21 days elapsed,21
+2024-05-20,NFLX,exit,64.07,1.5443066391156397,Exit: RSI 67.5,14
+2024-05-21,NVDA,exit,95.3,3.135710450323611,Exit: 21 days elapsed,21
+2024-05-22,MSFT,exit,424.76,6.820001657341592,Exit: RSI 65.1,16
+2024-05-28,V,exit,267.57,3.4132529917120555,"Exit: 21 days elapsed + Trailing stop (Peak: 277.39, Drop: 9.82)",21
+2024-05-29,MA,exit,437.47,5.609618692631375,"Exit: Trailing stop (Peak: 454.80, Drop: 17.33)",20
+2024-05-29,META,exit,471.23,11.69006152971963,Exit: 21 days elapsed,21
+2024-06-07,AMZN,entry,184.16,3.5373773977192458,"Entry: RSI context 36.6, MACD cross, BB context",0
+2024-06-20,WFC,entry,56.67,0.9848309683631222,"Entry: RSI context 36.3, MACD cross, BB context",0
+2024-06-24,XOM,entry,107.57,2.0729675344405813,"Entry: RSI context 31.4, MACD cross, BB context",0
+2024-06-26,AMZN,exit,193.59,3.9048181657485364,Exit: RSI 66.0,19
+2024-07-08,MA,entry,440.9,6.094747570134009,"Entry: RSI context 34.4, MACD cross, BB context",0
+2024-07-11,WFC,exit,57.81,1.1443880633697503,Exit: 21 days elapsed,21
+2024-07-15,XOM,exit,108.65,1.8987986857301031,Exit: 21 days elapsed,21
+2024-07-24,MA,exit,427.86,7.100297700806005,"Exit: Trailing stop (Peak: 446.38, Drop: 18.52)",16
+2024-07-30,MA,entry,443.07,7.357742415470646,"Entry: RSI context 37.1, MACD cross, BB context",0
+2024-07-31,V,entry,262.15,4.564956439901741,"Entry: RSI context 32.5, MACD cross, BB context",0
+2024-08-05,MA,exit,437.52,9.48005026885301,"Exit: Trailing stop (Peak: 459.46, Drop: 21.94)",6
+2024-08-05,PG,entry,160.42,3.1516837376633138,"Entry: RSI context 38.6, MACD cross, BB context",0
+2024-08-09,NFLX,entry,63.41,1.8251830291282654,"Entry: RSI context 27.4, MACD cross, BB context",0
+2024-08-14,AAPL,entry,220.2,6.0030946755261425,"Entry: RSI context 35.9, MACD cross, BB context",0
+2024-08-14,MSFT,entry,411.09,9.009852543491956,"Entry: RSI context 24.8, MACD cross, BB context",0
+2024-08-15,ADBE,entry,553.87,13.454165475494875,"Entry: RSI context 36.5, MACD cross, BB context",0
+2024-08-15,AMZN,entry,177.59,5.958086718202105,"Entry: RSI context 26.0, MACD cross, BB context",0
+2024-08-15,GS,entry,480.98,12.254039632619563,"Entry: RSI context 39.3, MACD cross, BB context",0
+2024-08-15,JPM,entry,203.83,4.307900550096386,"Entry: RSI context 35.1, MACD cross, BB context",0
+2024-08-15,ORCL,entry,134.47,3.1570776536095457,"Entry: RSI context 32.3, MACD cross, BB context",0
+2024-08-16,BAC,entry,37.77,0.8765012027680479,"Entry: RSI context 25.1, MACD cross, BB context",0
+2024-08-16,GOOGL,entry,161.84,4.32729498093072,"Entry: RSI context 26.9, MACD cross, BB context",0
+2024-08-16,NFLX,exit,67.41,1.722300441099916,Exit: RSI 65.7,7
+2024-08-16,WFC,entry,53.57,1.3651488497567348,"Entry: RSI context 27.8, MACD cross, BB context",0
+2024-08-21,V,exit,265.19,3.8656097785456356,Exit: 21 days elapsed,21
+2024-08-23,JPM,exit,210.4,3.5310875831273254,Exit: RSI 65.7,8
+2024-08-26,PG,exit,162.62,2.471183350344639,Exit: 21 days elapsed,21
+2024-09-04,AAPL,exit,219.3,4.894233180358681,Exit: 21 days elapsed,21
+2024-09-04,MSFT,exit,404.06,7.778226151824892,Exit: 21 days elapsed,21
+2024-09-05,ADBE,exit,567.75,12.215168093347081,Exit: 21 days elapsed,21
+2024-09-05,AMZN,exit,177.87,4.751542816398991,Exit: 21 days elapsed,21
+2024-09-05,GS,exit,473.11,10.52578010645496,Exit: 21 days elapsed,21
+2024-09-05,ORCL,exit,140.02,2.619113812813333,Exit: 21 days elapsed,21
+2024-09-06,BAC,exit,37.48,0.8091760423063751,Exit: 21 days elapsed,21
+2024-09-06,GOOGL,exit,149.86,4.059620275884605,"Exit: 21 days elapsed + Trailing stop (Peak: 166.01, Drop: 16.15)",21
+2024-09-06,WFC,exit,52.31,1.3642065643162475,"Exit: 21 days elapsed + Trailing stop (Peak: 56.58, Drop: 4.27)",21
+2024-09-16,GOOGL,entry,157.12,3.863940535541938,"Entry: RSI context 27.1, MACD cross, BB context",0
+2024-09-19,GS,entry,488.95,11.681943965352412,"Entry: RSI context 38.5, MACD cross, BB context",0
+2024-09-19,XOM,entry,110.28,2.2633085745151296,"Entry: RSI context 36.6, MACD cross, BB context",0
+2024-09-20,AAPL,entry,227.06,5.085321001511675,"Entry: RSI context 39.4, MACD cross, BB context",0
+2024-09-20,WFC,entry,54.48,1.496738468010188,"Entry: RSI context 32.1, MACD cross, BB context",0
+2024-10-03,XOM,exit,116.49,2.4779050225265866,Exit: RSI 65.6,14
+2024-10-07,GOOGL,exit,162.05,3.3460488291633754,Exit: 21 days elapsed,21
+2024-10-10,GS,exit,489.11,8.862865931951232,Exit: 21 days elapsed,21
+2024-10-11,AAPL,exit,226.04,4.318224722981659,Exit: 21 days elapsed,21
+2024-10-11,WFC,exit,59.03,1.4720856431183784,Exit: RSI 69.6 + 21 days elapsed,21
+2024-10-15,PG,entry,165.69,2.1163098351216223,"Entry: RSI context 34.7, MACD cross, BB context",0
+2024-10-24,TSLA,entry,260.48,11.201851572978882,"Entry: RSI context 36.5, MACD cross, BB context",0
+2024-10-25,TSLA,exit,269.16,11.412076460623249,Exit: RSI 67.8,1
+2024-10-30,PG,exit,159.64,1.9563862075070562,"Exit: Trailing stop (Peak: 165.69, Drop: 6.05)",15
+2024-11-07,XOM,entry,115.13,2.1507540624805164,"Entry: RSI context 35.0, MACD cross, BB context",0
+2024-11-11,HD,entry,393.88,7.340554848211115,"Entry: RSI context 39.8, MACD cross, BB context",0
+2024-11-13,PG,entry,159.94,2.190517852111832,"Entry: RSI context 26.8, MACD cross, BB context",0
+2024-11-22,PG,exit,169.25,2.3647502416013326,Exit: RSI 69.9,9
+2024-11-25,HD,exit,413.22,8.110724596421338,Exit: RSI 65.8,14
+2024-11-29,META,entry,571.75,13.096423029940679,"Entry: RSI context 39.7, MACD cross, BB context",0
+2024-11-29,XOM,exit,113.12,1.8797106131811152,Exit: 22 days elapsed,22
+2024-12-03,META,exit,610.6,14.188599449285581,Exit: RSI 68.4,4

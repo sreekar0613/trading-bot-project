@@ -464,7 +464,8 @@ class TradingBot:
             prev = df.iloc[-2]
 
             macd_trigger = (current['macd_hist'] > 0) and (prev['macd_hist'] <= 0)
-            rsi_context = (last_10['rsi'] < 35).any()
+            # Relaxed from 35→40 per Task #5 walk-forward validation (2026-04-25)
+            rsi_context = (last_10['rsi'] < 40).any()
             bb_context = (last_10['close'] < last_10['bb_lower'] * 1.01).any()
             trend_filter = current['close'] > current['ema200']
 
