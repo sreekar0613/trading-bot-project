@@ -12,3 +12,8 @@ EARNINGS_WINDOW_DAYS = 3
 
 # RSI oversold context threshold (relaxed from 35 to 40 per Task #5 validation)
 RSI_OVERSOLD_THRESHOLD = 40
+
+# Macro circuit breaker thresholds (Task #6)
+VIX_THRESHOLD = 25
+SPY_TREND_LOOKBACK = 200
+

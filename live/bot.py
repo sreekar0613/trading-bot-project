@@ -28,7 +28,10 @@ sys.path.append(str(REPO_ROOT))
 from indicators.technical import (
     calculate_rsi, calculate_macd, calculate_bollinger, calculate_ema, calculate_atr
 )
-from config import MAX_DAILY_LOSS_PCT, API_MAX_RETRIES, API_BACKOFF_BASE, EARNINGS_WINDOW_DAYS
+from config import (
+    MAX_DAILY_LOSS_PCT, API_MAX_RETRIES, API_BACKOFF_BASE, EARNINGS_WINDOW_DAYS,
+    VIX_THRESHOLD, SPY_TREND_LOOKBACK
+)
 
 # Setup logging
 LOG_FILE = REPO_ROOT / 'logs' / 'paper_trading.log'
@@ -357,6 +360,25 @@ class TradingBot:
                 return True
         return False
 
+    def _check_regime_filter(self) -> bool:
+        """Return True if SPY close < 200 EMA and VIX > threshold (risk-off)."""
+        try:
+            df = yf.download(['SPY', '^VIX'], period="2y", progress=False)
+            if df.empty:
+                logging.error("Regime filter: yfinance returned empty dataframe.")
+                return False
+
+            spy_close = df['Close']['SPY'].iloc[-1]
+            vix_close = df['Close']['^VIX'].iloc[-1]
+            spy_ema200 = df['Close']['SPY'].ewm(span=SPY_TREND_LOOKBACK, adjust=False).mean().iloc[-1]
+
+            if vix_close > VIX_THRESHOLD and spy_close < spy_ema200:
+                return True
+            return False
+        except Exception as e:
+            logging.error(f"Regime filter check failed: {e}")
+            return False
+
     def calculate_position_size(self, price: float, atr_value: float, equity: float, symbol: str, sector: str, current_sector_exposure: float) -> float:
         risk_amount = equity * self.risk_per_trade
         stop_distance = atr_value * self.stop_loss_atr_multiplier
@@ -456,6 +478,10 @@ class TradingBot:
 
         # Macro drawdown pause
         if self._check_macro_drawdown():
+            return
+
+        if self._check_regime_filter():
+            logging.info("regime: risk-off, skipping entries")
             return
 
         universe = self.get_active_universe()
