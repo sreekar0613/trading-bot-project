@@ -6,7 +6,7 @@
 ---
 
 ## 1. Project Overview
-
+.2
 **What it is.** A fully autonomous, medium-risk/medium-growth equities trading
 bot. Multi-factor confluence model (trend + RSI oversold + MACD cross + lower
 Bollinger), ATR-based position sizing and trailing stop, multi-tier kill

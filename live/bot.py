@@ -13,6 +13,7 @@ from pathlib import Path
 load_dotenv()
 
 import finnhub
+import yfinance as yf
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
@@ -391,6 +392,7 @@ class TradingBot:
         return exposure
 
     def fetch_historical_batch(self, tickers: list[str], lookback_days: int = 365):
+        import pandas as pd
         end_time = datetime.now()
         start_time = end_time - timedelta(days=lookback_days)
 
@@ -406,8 +408,43 @@ class TradingBot:
             bars = self.alpaca_call_with_backoff(self.data_client.get_stock_bars, request)
             return bars.df
         except Exception as e:
-            logging.error(f"Failed to fetch data: {e}")
-            return None
+            logging.warning(f"Alpaca feed failed ({e}). Falling back to yfinance.")
+            try:
+                # yfinance fallback
+                start_str = start_time.strftime('%Y-%m-%d')
+                end_str = end_time.strftime('%Y-%m-%d')
+                df = yf.download(tickers, start=start_str, end=end_str, progress=False)
+                
+                if df.empty:
+                    logging.error("yfinance returned empty dataframe.")
+                    return None
+
+                # Normalize yfinance dataframe to match Alpaca schema
+                if isinstance(df.columns, pd.MultiIndex):
+                    try:
+                        df = df.stack(level=1, future_stack=True)
+                    except TypeError:
+                        df = df.stack(level=1)
+                    df.index.names = ['timestamp', 'symbol']
+                    df = df.swaplevel(0, 1)
+                else:
+                    df['symbol'] = tickers[0]
+                    df = df.set_index('symbol', append=True)
+                    df = df.swaplevel(0, 1)
+                    df.index.names = ['symbol', 'timestamp']
+                
+                df.columns = [str(c).lower() for c in df.columns]
+                
+                # Align timezone to UTC to match Alpaca
+                if df.index.levels[1].tz is None:
+                    df.index = df.index.set_levels(pd.to_datetime(df.index.levels[1]).tz_localize('UTC'), level=1)
+                else:
+                    df.index = df.index.set_levels(pd.to_datetime(df.index.levels[1]).tz_convert('UTC'), level=1)
+                    
+                return df
+            except Exception as yf_e:
+                logging.error(f"yfinance fallback failed: {yf_e}")
+                return None
 
     def job_scan_signals(self):
         """Run daily at 4:05 PM ET to generate signals for the next morning."""
