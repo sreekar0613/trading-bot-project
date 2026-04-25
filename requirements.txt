@@ -15,7 +15,7 @@ yfinance==0.2.37          # Yahoo Finance market data API
 pandas==2.2.1             # Data manipulation
 numpy==1.26.4             # Numerical computing
 requests==2.31.0          # HTTP requests for APIs
-vaderSentiment==3.3.2     # Local NLP sentiment analysis
+openai>=1.0.0             # LLM sentiment analysis
 
 # Database
 python-dotenv==1.0.1      # Load environment variables from .env

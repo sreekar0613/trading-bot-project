@@ -2,10 +2,11 @@ import os
 import sys
 import sqlite3
 import logging
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 import yfinance as yf
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import openai
 
 # Configuration
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -19,6 +20,31 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler(sys.stdout)]
 )
+
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def _get_gpt_sentiment(headline: str) -> float:
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a highly accurate financial sentiment analyzer. Analyze the following news headline. Classify its short-term impact on the mentioned company's stock price as Positive (1.0), Neutral (0.0), or Negative (-1.0). Respond ONLY with a valid JSON object in this exact format: {\"score\": <float>}."
+                },
+                {"role": "user", "content": headline}
+            ],
+            timeout=10.0
+        )
+        content = response.choices[0].message.content
+        if content:
+            data = json.loads(content)
+            return float(data.get("score", 0.0))
+        return 0.0
+    except Exception as e:
+        logging.error(f"GPT sentiment analysis failed for '{headline}': {e}")
+        return 0.0
 
 def setup_database(conn: sqlite3.Connection) -> None:
     cursor = conn.cursor()
@@ -50,11 +76,10 @@ def main() -> None:
         conn.close()
         sys.exit(0)
 
-    print("Local NLP Sentiment Screener — Yahoo Finance + VADER")
+    print("Local NLP Sentiment Screener — Yahoo Finance + OpenAI")
     print(f"Database : {DB_PATH}")
     print(f"Tickers  : {len(tickers)}\n")
 
-    analyzer = SentimentIntensityAnalyzer()
     today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
     results = []
@@ -74,7 +99,7 @@ def main() -> None:
             for article in news:
                 title = article.get("content", {}).get("title", "")
                 if title:
-                    score = analyzer.polarity_scores(title)['compound']
+                    score = _get_gpt_sentiment(title)
                     scores.append(score)
             
             if not scores:
