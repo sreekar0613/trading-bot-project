@@ -121,10 +121,15 @@ class TradingBot:
             """)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS portfolio_state (
-                    key   TEXT PRIMARY KEY,
-                    value REAL
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    paused BOOLEAN DEFAULT 0,
+                    last_heartbeat TIMESTAMP,
+                    open_position_count INTEGER DEFAULT 0,
+                    halted_until TEXT,
+                    peak_equity REAL
                 )
             """)
+            conn.execute("INSERT OR IGNORE INTO portfolio_state (id) VALUES (1)")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS earnings_calendar (
                     symbol         TEXT,
@@ -133,6 +138,29 @@ class TradingBot:
                     PRIMARY KEY (symbol, earnings_date)
                 )
             """)
+
+    def _is_paused(self) -> bool:
+        """Query portfolio_state for the paused flag."""
+        try:
+            with self._get_conn() as conn:
+                row = conn.execute("SELECT paused FROM portfolio_state WHERE id = 1").fetchone()
+                return bool(row[0]) if row else False
+        except Exception as e:
+            logging.error(f"Failed to check paused state: {e}")
+            return False
+
+    def _update_system_state(self):
+        """Update last_heartbeat and open_position_count in portfolio_state."""
+        try:
+            positions = self.alpaca_call_with_backoff(self.trading_client.get_all_positions)
+            open_count = len(positions) if positions else 0
+            with self._get_conn() as conn:
+                conn.execute(
+                    "UPDATE portfolio_state SET last_heartbeat = CURRENT_TIMESTAMP, open_position_count = ? WHERE id = 1",
+                    (open_count,)
+                )
+        except Exception as e:
+            logging.error(f"Failed to update system state: {e}")
 
     def get_active_universe(self):
         """Query fundamental_universe for symbols and sectors."""
@@ -278,13 +306,10 @@ class TradingBot:
         or None to clear."""
         try:
             with self._get_conn() as conn:
-                if value is None:
-                    conn.execute("DELETE FROM portfolio_state WHERE key = 'halted_until'")
-                else:
-                    conn.execute(
-                        "INSERT OR REPLACE INTO portfolio_state (key, value) VALUES ('halted_until', ?)",
-                        (value,),
-                    )
+                conn.execute(
+                    "UPDATE portfolio_state SET halted_until = ? WHERE id = 1",
+                    (value,)
+                )
         except Exception as e:
             logging.error(f"Failed to persist halted_until={value}: {e}")
 
@@ -340,14 +365,14 @@ class TradingBot:
 
         with self._get_conn() as conn:
             row = conn.execute(
-                "SELECT value FROM portfolio_state WHERE key = 'peak_equity'"
+                "SELECT peak_equity FROM portfolio_state WHERE id = 1"
             ).fetchone()
-            peak = float(row[0]) if row else 0.0
+            peak = float(row[0]) if row and row[0] is not None else 0.0
 
             if equity > peak:
                 peak = equity
                 conn.execute(
-                    "INSERT OR REPLACE INTO portfolio_state (key, value) VALUES ('peak_equity', ?)",
+                    "UPDATE portfolio_state SET peak_equity = ? WHERE id = 1",
                     (peak,)
                 )
 
@@ -471,6 +496,10 @@ class TradingBot:
     def job_scan_signals(self):
         """Run daily at 4:05 PM ET to generate signals for the next morning."""
         logging.info("--- Job: Scanning Signals ---")
+
+        if self._is_paused():
+            logging.info("System is paused via override. Skipping.")
+            return
 
         if self.halted_until == date.today():
             logging.warning("Bot halted by daily loss circuit breaker — skipping signal scan.")
@@ -628,6 +657,10 @@ class TradingBot:
         """Run daily at 10:15 AM ET to execute queued orders."""
         logging.info("--- Job: Executing Queued Orders ---")
 
+        if self._is_paused():
+            logging.info("System is paused via override. Skipping.")
+            return
+
         if self.halted_until == date.today():
             logging.warning("Bot halted by daily loss circuit breaker — skipping order execution.")
             return
@@ -759,7 +792,10 @@ class TradingBot:
                 if self.check_market_hours():
                     if last_kill_switch_check is None or \
                        (now_et - last_kill_switch_check) >= timedelta(minutes=5):
-                        if self.halted_until != date.today():
+                        
+                        self._update_system_state()
+
+                        if self.halted_until != date.today() and not self._is_paused():
                             try:
                                 self.check_daily_loss_circuit_breaker()
                             except Exception as e:

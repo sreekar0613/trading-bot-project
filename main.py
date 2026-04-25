@@ -261,6 +261,44 @@ def metrics():
 
 
 # ---------------------------------------------------------------------------
+# Bot Control Endpoints (Task #7)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/bot/pause")
+def pause_bot():
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("UPDATE portfolio_state SET paused = 1 WHERE id = 1")
+        return {"status": "paused"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/bot/resume")
+def resume_bot():
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("UPDATE portfolio_state SET paused = 0 WHERE id = 1")
+        return {"status": "resumed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/bot/status")
+def bot_status_endpoint():
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            row = conn.execute("SELECT paused, last_heartbeat, open_position_count FROM portfolio_state WHERE id = 1").fetchone()
+            if row:
+                return {
+                    "paused": bool(row[0]),
+                    "last_heartbeat": row[1],
+                    "open_position_count": row[2]
+                }
+            return {"paused": False, "last_heartbeat": None, "open_position_count": 0}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
 # Sidecar context aggregator (loopback only — no auth)
 # ---------------------------------------------------------------------------
 
@@ -275,18 +313,23 @@ def _safe(fn, *args, **kwargs):
 def _bot_status() -> dict:
     """Read halted_until from portfolio_state and derive last_updated from log mtime.
 
-    NOTE: bot.py currently keeps halted_until in memory only. Until it persists
-    that value to portfolio_state (key='halted_until', ISO date string), this
-    field will always report halted=False.
+    Also query paused, last_heartbeat, and open_position_count for the sidecar context.
     """
     halted = False
+    paused = False
+    last_heartbeat = None
+    open_position_count = 0
     try:
         with sqlite3.connect(DB_PATH) as conn:
             row = conn.execute(
-                "SELECT value FROM portfolio_state WHERE key = 'halted_until'"
+                "SELECT halted_until, paused, last_heartbeat, open_position_count FROM portfolio_state WHERE id = 1"
             ).fetchone()
-        if row and row[0] == date.today().isoformat():
-            halted = True
+        if row:
+            if row[0] == date.today().isoformat():
+                halted = True
+            paused = bool(row[1])
+            last_heartbeat = row[2]
+            open_position_count = row[3]
     except Exception:
         pass
 
@@ -296,7 +339,13 @@ def _bot_status() -> dict:
             LOG_FILE.stat().st_mtime, tz=timezone.utc
         ).isoformat()
 
-    return {"halted": halted, "last_updated": last_updated}
+    return {
+        "halted": halted, 
+        "paused": paused,
+        "last_heartbeat": last_heartbeat,
+        "open_position_count": open_position_count,
+        "last_updated": last_updated
+    }
 
 
 @app.get("/api/sidecar/context")
