@@ -28,7 +28,6 @@ vectorbt==0.26.1          # Alternative backtesting (optional)
 
 # Technical Indicators
 ta-lib==0.4.28            # Technical analysis library (requires C dependencies)
-pandas-ta==0.4.71b0        # Alternative TA library (pure Python)
 
 # Scheduling & Automation
 schedule==1.2.1           # Job scheduling (daily signal checks)
