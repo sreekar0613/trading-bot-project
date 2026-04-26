@@ -45,6 +45,9 @@ venv.bak/
 *.sqlite
 *.sqlite3
 
+# Trained models (can be large, regenerated on run)
+*.pkl
+
 # Logs
 *.log
 logs/

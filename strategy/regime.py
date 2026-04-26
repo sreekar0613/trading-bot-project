@@ -4,8 +4,10 @@ import joblib
 from hmmlearn import hmm
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 class MarketRegimeDetector:
-    def __init__(self, model_path="regime_model.pkl"):
+    def __init__(self, model_path=REPO_ROOT / "regime_model.pkl"):
         self.model = hmm.GaussianHMM(n_components=3, covariance_type="full", n_iter=1000, random_state=42)
         self.model_path = model_path
         self.is_fitted = False
