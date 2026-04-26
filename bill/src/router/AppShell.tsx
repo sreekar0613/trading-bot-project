@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { TopNav } from "./TopNav";
 import { Sidebar } from "./Sidebar";
+import { Toaster } from "@/components/Toast";
 
 interface AppShellProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ export function AppShell({ children }: AppShellProps) {
       <main className="pl-[64px] pt-14 transition-[padding] md:pl-[220px]">
         <div className="p-6">{children}</div>
       </main>
+      <Toaster />
     </div>
   );
 }

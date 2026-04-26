@@ -68,6 +68,20 @@ export async function resumeBot(): Promise<BotStatusPayload> {
   return data;
 }
 
+export async function blacklistTicker(symbol: string): Promise<{ ok: boolean; symbol: string }> {
+  const { data } = await apiClient.post<{ ok: boolean; symbol: string }>(
+    `/api/universe/${encodeURIComponent(symbol)}/blacklist`,
+  );
+  return data;
+}
+
+export async function unblacklistTicker(symbol: string): Promise<{ ok: boolean; symbol: string }> {
+  const { data } = await apiClient.delete<{ ok: boolean; symbol: string }>(
+    `/api/universe/${encodeURIComponent(symbol)}/blacklist`,
+  );
+  return data;
+}
+
 export async function exitPosition(symbol: string): Promise<{ ok: boolean; symbol: string }> {
   const { data } = await apiClient.post<{ ok: boolean; symbol: string }>(
     `/api/positions/${encodeURIComponent(symbol)}/exit`,

@@ -47,6 +47,8 @@ export interface UniversePayload {
   avg_volume: number | null;
   earnings_growth: number | null;
   blacklisted?: boolean;
+  sector?: string | null;
+  sentiment_score?: number | null;
 }
 
 export interface BotStatusPayload {
