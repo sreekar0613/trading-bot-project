@@ -1,0 +1,12 @@
+:root {
+  --bg-base: #f9f9f8;
+  --surface: #ffffff;
+  --border: #e5e5e5;
+  --text-primary: #111111;
+  --text-secondary: #737373;
+  --accent-bull: #00c805;
+  --accent-bear: #ff5000;
+  --critical-action: #d93025;
+  --radius-card: 12px;
+  --radius-input: 8px;
+}

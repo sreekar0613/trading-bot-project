@@ -1,0 +1,39 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme {
+  --color-bg: var(--bg-base);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-bull: var(--accent-bull);
+  --color-bear: var(--accent-bear);
+  --color-critical: var(--critical-action);
+  --radius-card: var(--radius-card);
+  --radius-input: var(--radius-input);
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-display: "Newsreader", Georgia, serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Geist", system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+table td,
+table th,
+.tabular,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
