@@ -3,6 +3,8 @@ import { RegimePill } from "@/features/bot-control/RegimePill";
 import { KillSwitchButton } from "@/features/bot-control/KillSwitchButton";
 import { AccountEquity } from "@/features/portfolio/AccountEquity";
 import { BuyingPower } from "@/features/portfolio/BuyingPower";
+import { Link } from "@tanstack/react-router";
+
 
 export function TopNav() {
   return (
@@ -11,9 +13,9 @@ export function TopNav() {
       style={{ height: 56 }}
     >
       <div className="flex items-center gap-8">
-        <span className="font-display italic leading-none" style={{ fontSize: 22 }}>
+        <Link to="/" className="font-display italic leading-none" style={{ fontSize: 22 }}>
           Bill
-        </span>
+        </Link>
         <div className="flex items-center gap-6">
           <BotStatusIndicator />
           <RegimePill />
