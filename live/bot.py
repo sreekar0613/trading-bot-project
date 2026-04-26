@@ -31,7 +31,7 @@ from indicators.technical import (
 )
 from config import (
     MAX_DAILY_LOSS_PCT, API_MAX_RETRIES, API_BACKOFF_BASE, EARNINGS_WINDOW_DAYS,
-    VIX_THRESHOLD, SPY_TREND_LOOKBACK, RISK_PER_TRADE
+    VIX_THRESHOLD, SPY_TREND_LOOKBACK, RISK_PER_TRADE, RSI_OVERSOLD_THRESHOLD
 )
 from strategy.regime import MarketRegimeDetector
 
@@ -602,7 +602,7 @@ class TradingBot:
 
             macd_trigger = (current['macd_hist'] > 0) and (prev['macd_hist'] <= 0)
             # Relaxed from 35→40 per Task #5 walk-forward validation (2026-04-25)
-            rsi_context = (last_10['rsi'] < 40).any()
+            rsi_context = (last_10['rsi'] < RSI_OVERSOLD_THRESHOLD).any()
             bb_context = (last_10['close'] < last_10['bb_lower'] * 1.01).any()
             trend_filter = current['close'] > current['ema200']
 

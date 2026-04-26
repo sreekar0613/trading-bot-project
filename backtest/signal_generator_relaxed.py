@@ -12,6 +12,7 @@ from indicators.technical import (
     load_price_history
 )
 from strategy.regime import MarketRegimeDetector
+from config import RSI_OVERSOLD_THRESHOLD
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = REPO_ROOT / "trading_bot.db"
@@ -19,7 +20,7 @@ DB_PATH = REPO_ROOT / "trading_bot.db"
 def generate_signals(symbol: str, start_date: str, end_date: str, regime_series: pd.Series = None) -> pd.DataFrame:
     """
     Generate entry and exit signals for a given symbol based on strategy rules.
-    1. Entry (ALL must be true): RSI < 40, MACD crossover (>0), Close < Lower BB, Close > EMA200
+    1. Entry (ALL must be true): RSI < RSI_OVERSOLD_THRESHOLD (from config), MACD crossover (>0), Close < Lower BB, Close > EMA200
     2. Exit (ANY triggers): Regime-aware dynamic parameters
     """
     # Load price data
@@ -68,7 +69,7 @@ def generate_signals(symbol: str, start_date: str, end_date: str, regime_series:
         
         if not position_open:
             # ENTRY LOGIC (Confluence Required)
-            cond_rsi = row['rsi_min_10'] < 40
+            cond_rsi = row['rsi_min_10'] < RSI_OVERSOLD_THRESHOLD
             cond_macd = (row['macd_hist'] > 0) and (prior_row['macd_hist'] <= 0)
             cond_bb = row['bb_context_10'] > 0
             cond_ema = row['close'] > row['ema200']

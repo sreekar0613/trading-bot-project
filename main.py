@@ -286,14 +286,22 @@ def resume_bot():
 def bot_status_endpoint():
     try:
         with sqlite3.connect(DB_PATH) as conn:
-            row = conn.execute("SELECT paused, last_heartbeat, open_position_count FROM portfolio_state WHERE id = 1").fetchone()
+            try:
+                row = conn.execute(
+                    "SELECT paused, last_heartbeat, open_position_count, current_regime FROM portfolio_state WHERE id = 1"
+                ).fetchone()
+            except sqlite3.OperationalError:
+                row = conn.execute(
+                    "SELECT paused, last_heartbeat, open_position_count FROM portfolio_state WHERE id = 1"
+                ).fetchone()
             if row:
                 return {
                     "paused": bool(row[0]),
                     "last_heartbeat": row[1],
-                    "open_position_count": row[2]
+                    "open_position_count": row[2],
+                    "current_regime": row[3] if len(row) > 3 else None
                 }
-            return {"paused": False, "last_heartbeat": None, "open_position_count": 0}
+            return {"paused": False, "last_heartbeat": None, "open_position_count": 0, "current_regime": None}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -319,17 +327,25 @@ def _bot_status() -> dict:
     paused = False
     last_heartbeat = None
     open_position_count = 0
+    current_regime = None
     try:
         with sqlite3.connect(DB_PATH) as conn:
-            row = conn.execute(
-                "SELECT halted_until, paused, last_heartbeat, open_position_count FROM portfolio_state WHERE id = 1"
-            ).fetchone()
+            try:
+                row = conn.execute(
+                    "SELECT halted_until, paused, last_heartbeat, open_position_count, current_regime FROM portfolio_state WHERE id = 1"
+                ).fetchone()
+            except sqlite3.OperationalError:
+                row = conn.execute(
+                    "SELECT halted_until, paused, last_heartbeat, open_position_count FROM portfolio_state WHERE id = 1"
+                ).fetchone()
         if row:
             if row[0] == date.today().isoformat():
                 halted = True
             paused = bool(row[1])
             last_heartbeat = row[2]
             open_position_count = row[3]
+            if len(row) > 4:
+                current_regime = row[4]
     except Exception:
         pass
 
@@ -340,10 +356,11 @@ def _bot_status() -> dict:
         ).isoformat()
 
     return {
-        "halted": halted, 
+        "halted": halted,
         "paused": paused,
         "last_heartbeat": last_heartbeat,
         "open_position_count": open_position_count,
+        "current_regime": current_regime,
         "last_updated": last_updated
     }
 
