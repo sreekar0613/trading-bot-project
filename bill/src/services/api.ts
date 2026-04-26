@@ -82,6 +82,30 @@ export async function unblacklistTicker(symbol: string): Promise<{ ok: boolean; 
   return data;
 }
 
+export interface HistoryBar {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export async function getSymbolHistory(
+  symbol: string,
+  timeframe: string,
+): Promise<{ bars: HistoryBar[] }> {
+  try {
+    const { data } = await apiClient.get<{ bars: HistoryBar[] }>(
+      `/api/history/${encodeURIComponent(symbol)}`,
+      { params: { timeframe } },
+    );
+    return data;
+  } catch {
+    return { bars: [] };
+  }
+}
+
 export async function exitPosition(symbol: string): Promise<{ ok: boolean; symbol: string }> {
   const { data } = await apiClient.post<{ ok: boolean; symbol: string }>(
     `/api/positions/${encodeURIComponent(symbol)}/exit`,
