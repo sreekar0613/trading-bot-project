@@ -12,9 +12,9 @@ export function BuyingPower() {
   const bp = data?.buying_power ?? 0;
 
   return (
-    <div className="flex flex-col text-right text-text-secondary" data-numeric>
-      <span className="text-[10px] uppercase tracking-wide">Buying power</span>
-      <span className="text-sm">
+    <div className="flex flex-col text-right" data-numeric>
+      <span className="text-[10px] uppercase tracking-wide text-text-secondary">Buying Power</span>
+      <span className="text-sm text-text-primary">
         <NumberFlow value={bp} format={{ style: "currency", currency: "USD" }} />
       </span>
     </div>

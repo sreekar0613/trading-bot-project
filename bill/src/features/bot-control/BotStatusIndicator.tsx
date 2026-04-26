@@ -1,13 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { getBotStatus } from "@/services/api";
 
 type StatusKind = "active" | "paused" | "halted";
 
 const COLOR: Record<StatusKind, string> = {
-  active: "var(--accent-bull)",
-  paused: "#f59e0b",
-  halted: "var(--critical-action)",
+  active: "#00C805",
+  paused: "#F59E0B",
+  halted: "#D93025",
 };
 
 const LABEL: Record<StatusKind, string> = {
@@ -35,16 +34,18 @@ export function BotStatusIndicator() {
 
   return (
     <div className="flex items-center gap-2 text-sm text-text-secondary">
-      <span className="relative flex h-2.5 w-2.5">
-        <motion.span
-          className="absolute inline-flex h-full w-full rounded-full"
+      <span className="relative inline-flex h-2.5 w-2.5">
+        <span
+          className="bill-pulse-ring absolute inset-0 rounded-full"
           style={{ background: color }}
-          animate={{ opacity: [0.6, 0.15, 0.6], scale: [1, 1.6, 1] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          aria-hidden
         />
-        <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+        <span
+          className="relative inline-flex h-2.5 w-2.5 rounded-full"
+          style={{ background: color }}
+        />
       </span>
-      <span>{LABEL[kind]}</span>
+      <span className="text-text-primary">{LABEL[kind]}</span>
     </div>
   );
 }

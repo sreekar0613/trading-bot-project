@@ -45,3 +45,15 @@ export async function getBotStatus(): Promise<BotStatusPayload> {
   const { data } = await apiClient.get<BotStatusPayload>("/api/bot/status");
   return data;
 }
+
+export interface KillBotResponse {
+  ok: boolean;
+  positions_closed?: number;
+  orders_canceled?: number;
+  message?: string;
+}
+
+export async function killBot(): Promise<KillBotResponse> {
+  const { data } = await apiClient.post<KillBotResponse>("/api/bot/kill");
+  return data;
+}

@@ -7,15 +7,17 @@ import { BuyingPower } from "@/features/portfolio/BuyingPower";
 export function TopNav() {
   return (
     <header
-      className="fixed inset-x-0 top-0 z-40 flex items-center justify-between gap-6 border-b border-border bg-surface px-5"
+      className="fixed inset-x-0 top-0 z-50 flex items-center justify-between gap-6 border-b border-border bg-surface px-5"
       style={{ height: 56 }}
     >
-      <div className="flex items-center gap-5">
-        <span className="font-display italic" style={{ fontSize: 20 }}>
+      <div className="flex items-center gap-8">
+        <span className="font-display italic leading-none" style={{ fontSize: 22 }}>
           Bill
         </span>
-        <BotStatusIndicator />
-        <RegimePill />
+        <div className="flex items-center gap-6">
+          <BotStatusIndicator />
+          <RegimePill />
+        </div>
       </div>
       <div className="flex items-center gap-6">
         <BuyingPower />
