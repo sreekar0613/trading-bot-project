@@ -694,6 +694,7 @@ class TradingBot:
 
     def _load_pending_orders(self) -> list:
         with self._get_conn() as conn:
+            conn.execute("DELETE FROM pending_orders WHERE queued_at < datetime('now', '-1 day')")
             rows = conn.execute("SELECT symbol FROM pending_orders").fetchall()
         return [r[0] for r in rows]
 
