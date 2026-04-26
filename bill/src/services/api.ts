@@ -57,3 +57,20 @@ export async function killBot(): Promise<KillBotResponse> {
   const { data } = await apiClient.post<KillBotResponse>("/api/bot/kill");
   return data;
 }
+
+export async function pauseBot(): Promise<BotStatusPayload> {
+  const { data } = await apiClient.post<BotStatusPayload>("/api/bot/pause");
+  return data;
+}
+
+export async function resumeBot(): Promise<BotStatusPayload> {
+  const { data } = await apiClient.post<BotStatusPayload>("/api/bot/resume");
+  return data;
+}
+
+export async function exitPosition(symbol: string): Promise<{ ok: boolean; symbol: string }> {
+  const { data } = await apiClient.post<{ ok: boolean; symbol: string }>(
+    `/api/positions/${encodeURIComponent(symbol)}/exit`,
+  );
+  return data;
+}
