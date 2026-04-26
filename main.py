@@ -10,6 +10,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import aiofiles
+from dateutil import parser as dateutil_parser
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -339,8 +340,17 @@ def _bot_status() -> dict:
                     "SELECT halted_until, paused, last_heartbeat, open_position_count FROM portfolio_state WHERE id = 1"
                 ).fetchone()
         if row:
-            if row[0] == date.today().isoformat():
-                halted = True
+            halted_until_raw = row[0]
+            if halted_until_raw:
+                if "T" in halted_until_raw:
+                    try:
+                        halted_until_dt = dateutil_parser.parse(halted_until_raw)
+                        if halted_until_dt.date() >= date.today():
+                            halted = True
+                    except (ValueError, TypeError):
+                        pass
+                elif halted_until_raw == date.today().isoformat():
+                    halted = True
             paused = bool(row[1])
             last_heartbeat = row[2]
             open_position_count = row[3]
