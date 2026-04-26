@@ -98,6 +98,10 @@ class TradingBot:
 
         self.halted_until = None  # Date until which the bot is halted by circuit breaker
 
+        self._day_start_equity = None
+        self._day_start_date = None
+        self._halted = False
+
         logging.info("Trading Bot initialized.")
 
     def alpaca_call_with_backoff(self, func, *args, **kwargs):
@@ -332,6 +336,75 @@ class TradingBot:
                 self.alpaca_call_with_backoff(self.trading_client.close_all_positions, cancel_orders=True)
                 logging.critical("All positions closed and orders cancelled. Exiting bot.")
                 sys.exit(1)
+
+    def _check_daily_drawdown(self):
+        """Anchor opening equity once per trading day; if intraday drawdown
+        exceeds MAX_DAILY_LOSS_PCT, trigger the kill switch."""
+        if self._halted:
+            return
+        try:
+            account = self.alpaca_call_with_backoff(self.trading_client.get_account)
+            current_equity = float(account.equity)
+        except Exception as e:
+            logging.error(f"Daily drawdown check: could not fetch account: {e}")
+            return
+
+        today = date.today()
+        if self._day_start_date != today or self._day_start_equity is None:
+            self._day_start_equity = current_equity
+            self._day_start_date = today
+            logging.info(f"Daily drawdown anchor set: ${current_equity:.2f} on {today.isoformat()}")
+            return
+
+        if self._day_start_equity <= 0:
+            return
+
+        daily_pnl_pct = (current_equity - self._day_start_equity) / self._day_start_equity
+        if daily_pnl_pct < -MAX_DAILY_LOSS_PCT:
+            logging.critical(
+                f"Daily drawdown {daily_pnl_pct * 100:.2f}% exceeds limit "
+                f"{-MAX_DAILY_LOSS_PCT * 100:.2f}%. Triggering kill switch."
+            )
+            self._trigger_kill_switch()
+
+    def _trigger_kill_switch(self):
+        """Liquidate everything, persist halt state, and signal the main loop to exit."""
+        logging.critical("Daily loss limit hit, liquidating all positions and halting.")
+        try:
+            self.alpaca_call_with_backoff(self.trading_client.cancel_orders)
+        except Exception as e:
+            logging.critical(f"Kill switch: cancel_orders failed: {e}")
+
+        try:
+            positions = self.alpaca_call_with_backoff(self.trading_client.get_all_positions)
+        except Exception as e:
+            logging.critical(f"Kill switch: get_all_positions failed: {e}")
+            positions = []
+
+        for pos in positions:
+            try:
+                self.alpaca_call_with_backoff(
+                    self.trading_client.close_position, pos.symbol
+                )
+                logging.critical(f"Kill switch: market-sold {pos.symbol}")
+            except Exception as e:
+                logging.critical(f"Kill switch: failed to close {pos.symbol}: {e}")
+
+        eastern = pytz.timezone('US/Eastern')
+        tomorrow_open = (datetime.now(eastern) + timedelta(days=1)).replace(
+            hour=9, minute=30, second=0, microsecond=0
+        )
+        halted_until_str = tomorrow_open.isoformat()
+        try:
+            with self._get_conn() as conn:
+                conn.execute(
+                    "UPDATE portfolio_state SET paused = 1, halted_until = ? WHERE id = 1",
+                    (halted_until_str,),
+                )
+        except Exception as e:
+            logging.critical(f"Kill switch: failed to persist halt state: {e}")
+
+        self._halted = True
 
     def _persist_halted_until(self, value: str | None) -> None:
         """Mirror self.halted_until to portfolio_state so the FastAPI sidecar
@@ -902,6 +975,12 @@ class TradingBot:
         last_kill_switch_check = None
 
         while True:
+            if self._halted:
+                logging.critical("Bot halted by daily drawdown kill switch. Exiting main loop.")
+                break
+
+            self._check_daily_drawdown()
+
             now_et = datetime.now(eastern)
             is_weekday = now_et.weekday() < 5
             today_str = now_et.strftime('%Y-%m-%d')
