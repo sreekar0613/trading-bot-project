@@ -104,7 +104,10 @@ function PublicHomePage() {
               onClick={() =>
                 isAuthenticated
                   ? navigate({ to: "/dashboard" })
-                  : loginWithRedirect({ appState: { returnTo: "/dashboard" } })
+                  : loginWithRedirect({ 
+                      appState: { returnTo: "/dashboard" },
+                      authorizationParams: { prompt: "login" }
+                    })
               }
               className="rounded-input bg-text-primary px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
             >
