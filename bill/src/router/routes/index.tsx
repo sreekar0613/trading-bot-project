@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { getTrades } from "@/services/api";
+import { useAuth0 } from "@auth0/auth0-react";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   component: PublicHomePage,
@@ -39,6 +41,8 @@ function PublicHomePage() {
   });
 
   const tradesCount = trades?.length;
+  const { isAuthenticated, loginWithRedirect } = useAuth0();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-bg text-text-primary">
@@ -96,12 +100,16 @@ function PublicHomePage() {
             >
               View GitHub
             </a>
-            <Link
-              to="/dashboard"
+            <button
+              onClick={() =>
+                isAuthenticated
+                  ? navigate({ to: "/dashboard" })
+                  : loginWithRedirect({ appState: { returnTo: "/dashboard" } })
+              }
               className="rounded-input bg-text-primary px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
             >
               Open Dashboard →
-            </Link>
+            </button>
           </div>
         </Section>
 
