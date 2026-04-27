@@ -15,6 +15,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi import Depends, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt as jose_jwt
+import httpx
 
 from utils.alpaca_client import fetch_account, fetch_positions
 from utils.database import DB_PATH, get_universe, get_sentiment, get_trades, get_metrics
@@ -23,6 +27,11 @@ DASHBOARD_HTML = Path(__file__).resolve().parent / "dashboard.html"
 APP_JSX        = Path(__file__).resolve().parent / "app.jsx"
 
 load_dotenv()
+
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
+AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "https://billbot.me/api")
+ALLOWED_EMAILS = set(os.getenv("ALLOWED_EMAILS", "skakumani06@gmail.com").split(","))
+_jwks_cache: dict = {}
 
 LOG_FILE = Path(__file__).resolve().parent / "logs" / "paper_trading.log"
 PORT = int(os.getenv("PORT", 8000))
@@ -36,6 +45,52 @@ _LOG_RE = re.compile(
 _KNOWN_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 
 logger = logging.getLogger("trading_api")
+
+
+# ---------------------------------------------------------------------------
+# Auth0 JWT verification
+# ---------------------------------------------------------------------------
+
+async def _get_jwks() -> dict:
+    global _jwks_cache
+    if _jwks_cache:
+        return _jwks_cache
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
+        resp.raise_for_status()
+        _jwks_cache = resp.json()
+    return _jwks_cache
+
+async def verify_token(token: str) -> dict:
+    try:
+        jwks = await _get_jwks()
+        header = jose_jwt.get_unverified_header(token)
+        key = next(
+            (k for k in jwks["keys"] if k["kid"] == header["kid"]),
+            None,
+        )
+        if key is None:
+            raise HTTPException(status_code=401, detail="Unknown signing key")
+        payload = jose_jwt.decode(
+            token,
+            key,
+            algorithms=["RS256"],
+            audience=AUTH0_AUDIENCE,
+            issuer=f"https://{AUTH0_DOMAIN}/",
+        )
+        email = payload.get("email") or payload.get("https://billbot.me/email")
+        if email not in ALLOWED_EMAILS:
+            raise HTTPException(status_code=403, detail="Email not authorized")
+        return payload
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+
+_bearer = HTTPBearer()
+
+async def require_auth(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+) -> dict:
+    return await verify_token(credentials.credentials)
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +213,12 @@ def serve_jsx():
 # ---------------------------------------------------------------------------
 
 @app.websocket("/ws")
-async def websocket_logs(ws: WebSocket) -> None:
+async def websocket_logs(ws: WebSocket, token: str = Query(default="")) -> None:
+    try:
+        await verify_token(token)
+    except HTTPException:
+        await ws.close(code=1008)
+        return
     await manager.connect(ws)
     try:
         # Send last 100 lines immediately on connect
@@ -194,7 +254,7 @@ def health():
 
 
 @app.get("/api/account")
-def account():
+def account(_: dict = Depends(require_auth)):
     try:
         return fetch_account()
     except Exception as e:
@@ -202,7 +262,7 @@ def account():
 
 
 @app.get("/api/universe")
-def universe():
+def universe(_: dict = Depends(require_auth)):
     try:
         data = get_universe()
         if not data:
@@ -215,7 +275,7 @@ def universe():
 
 
 @app.get("/api/sentiment")
-def sentiment():
+def sentiment(_: dict = Depends(require_auth)):
     try:
         data = get_sentiment()
         if not data:
@@ -228,7 +288,7 @@ def sentiment():
 
 
 @app.get("/api/positions")
-def positions():
+def positions(_: dict = Depends(require_auth)):
     try:
         return fetch_positions()
     except Exception as e:
@@ -236,7 +296,7 @@ def positions():
 
 
 @app.get("/api/trades")
-def trades():
+def trades(_: dict = Depends(require_auth)):
     try:
         data = get_trades(limit=50)
         if not data:
@@ -249,7 +309,7 @@ def trades():
 
 
 @app.get("/api/metrics")
-def metrics():
+def metrics(_: dict = Depends(require_auth)):
     try:
         data = get_metrics()
         if not data:
@@ -266,7 +326,7 @@ def metrics():
 # ---------------------------------------------------------------------------
 
 @app.post("/api/bot/pause")
-def pause_bot():
+def pause_bot(_: dict = Depends(require_auth)):
     try:
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute("UPDATE portfolio_state SET paused = 1 WHERE id = 1")
@@ -275,7 +335,7 @@ def pause_bot():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/bot/resume")
-def resume_bot():
+def resume_bot(_: dict = Depends(require_auth)):
     try:
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute("UPDATE portfolio_state SET paused = 0 WHERE id = 1")
@@ -379,7 +439,7 @@ _TIMEFRAME_LOOKBACK = {"1D": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1Y": 36
 
 
 @app.get("/api/history/{symbol}")
-def history(symbol: str, timeframe: str = "1D"):
+def history(symbol: str, timeframe: str = "1D", _: dict = Depends(require_auth)):
     try:
         sym = symbol.upper()
         days = _TIMEFRAME_LOOKBACK.get(timeframe)
@@ -417,7 +477,7 @@ def history(symbol: str, timeframe: str = "1D"):
 
 
 @app.get("/api/sidecar/context")
-def sidecar_context():
+def sidecar_context(_: dict = Depends(require_auth)):
     trades_data = _safe(get_trades, limit=10)
     return {
         "account": _safe(fetch_account),
