@@ -375,6 +375,45 @@ def _bot_status() -> dict:
     }
 
 
+_TIMEFRAME_LOOKBACK = {"1D": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1Y": 365}
+
+
+@app.get("/api/history/{symbol}")
+def history(symbol: str, timeframe: str = "1D"):
+    try:
+        sym = symbol.upper()
+        days = _TIMEFRAME_LOOKBACK.get(timeframe)
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            if days is None:
+                rows = conn.execute(
+                    "SELECT date, open, high, low, close, volume FROM price_history "
+                    "WHERE symbol = ? ORDER BY date ASC",
+                    (sym,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT date, open, high, low, close, volume FROM price_history "
+                    "WHERE symbol = ? AND date >= date('now', ?) ORDER BY date ASC",
+                    (sym, f"-{days} days"),
+                ).fetchall()
+
+        bars = [
+            {
+                "time": int(datetime.strptime(row["date"], "%Y-%m-%d").timestamp()),
+                "open": float(row["open"]),
+                "high": float(row["high"]),
+                "low": float(row["low"]),
+                "close": float(row["close"]),
+                "volume": int(row["volume"]) if row["volume"] is not None else 0,
+            }
+            for row in rows
+        ]
+        return {"bars": bars}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/sidecar/context")
 def sidecar_context():
     trades_data = _safe(get_trades, limit=10)
