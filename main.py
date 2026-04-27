@@ -187,8 +187,8 @@ app = FastAPI(title="Trading Bot API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # dashboard served from same host; also allows file:// dev
-    allow_credentials=False,
+    allow_origins=["https://billbot.me", "http://localhost:5173"],   # dashboard served from same host; also allows file:// dev
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
