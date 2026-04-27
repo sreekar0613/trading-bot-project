@@ -394,8 +394,10 @@ def history(symbol: str, timeframe: str = "1D"):
             else:
                 rows = conn.execute(
                     "SELECT date, open, high, low, close, volume FROM price_history "
-                    "WHERE symbol = ? AND date >= date('now', ?) ORDER BY date ASC",
-                    (sym, f"-{days} days"),
+                    "WHERE symbol = ? AND date >= date("
+                    "(SELECT MAX(date) FROM price_history WHERE symbol = ?), ?"
+                    ") ORDER BY date ASC",
+                    (sym, sym, f"-{days} days"),
                 ).fetchall()
 
         bars = [
